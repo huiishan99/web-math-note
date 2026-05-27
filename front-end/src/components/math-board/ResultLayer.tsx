@@ -67,6 +67,16 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
         const resultText = getResultText(result);
         const shouldUseLatex = isMathLike(resultText);
         const displayContent = shouldUseLatex ? getResultLatex(result) : resultText;
+        const contentClassName = shouldUseLatex
+          ? (isInlineAnswer ? "latex-content text-[2rem] font-medium leading-none" : "latex-content text-lg")
+          : (isInlineAnswer
+            ? "max-w-[min(26rem,calc(100vw-2rem))] whitespace-pre-wrap text-[1.55rem] font-medium leading-tight"
+            : "max-w-sm whitespace-pre-wrap text-base font-normal leading-relaxed");
+        const textAnswerStyle = shouldUseLatex
+          ? undefined
+          : {
+              fontFamily: 'ui-rounded, "SF Pro Rounded", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            };
 
         return (
           <Draggable
@@ -82,13 +92,7 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
                   : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
               }
             >
-              <div
-                className={
-                  isInlineAnswer
-                    ? "latex-content whitespace-pre-wrap text-[2rem] font-medium leading-none"
-                    : "latex-content whitespace-pre-wrap text-lg"
-                }
-              >
+              <div className={contentClassName} style={textAnswerStyle}>
                 {displayContent}
               </div>
               {result.steps.length > 0 && (

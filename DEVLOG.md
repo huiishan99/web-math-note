@@ -1,5 +1,14 @@
 # Devlog
 
+## 2026-05-27 - Improve text answer typography
+
+### Changed
+- Kept natural-language answers outside MathJax while styling them with Apple-style rounded system fonts.
+- Tuned natural-language inline answer sizing and line-height so text answers preserve spaces without looking like plain browser text.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Preserve spaces in text answers
 
 ### Changed
