@@ -1,5 +1,14 @@
 # Devlog
 
+## 2026-05-27 - Align text answers with MathJax typography
+
+### Changed
+- Switched natural-language answer rendering to a TeX-like serif font stack so text answers visually match MathJax results.
+- Kept text answers outside MathJax to preserve spaces and wrapping.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Improve text answer typography
 
 ### Changed

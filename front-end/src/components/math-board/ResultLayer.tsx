@@ -9,6 +9,12 @@ interface ResultLayerProps {
   onMove: (id: string, position: Position) => void;
 }
 
+const textAnswerStyle = {
+  fontFamily: '"MJXc-TeX-main-R", "MathJax_Main", "STIX Two Text", "Cambria Math", "Times New Roman", serif',
+  fontWeight: 400,
+  letterSpacing: 0,
+};
+
 function formatResult(value: VariableValue) {
   if (value === null) {
     return "null";
@@ -70,13 +76,8 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
         const contentClassName = shouldUseLatex
           ? (isInlineAnswer ? "latex-content text-[2rem] font-medium leading-none" : "latex-content text-lg")
           : (isInlineAnswer
-            ? "max-w-[min(26rem,calc(100vw-2rem))] whitespace-pre-wrap text-[1.55rem] font-medium leading-tight"
-            : "max-w-sm whitespace-pre-wrap text-base font-normal leading-relaxed");
-        const textAnswerStyle = shouldUseLatex
-          ? undefined
-          : {
-              fontFamily: 'ui-rounded, "SF Pro Rounded", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            };
+            ? "max-w-[min(26rem,calc(100vw-2rem))] whitespace-pre-wrap text-[1.8rem] leading-tight"
+            : "max-w-sm whitespace-pre-wrap text-lg leading-relaxed");
 
         return (
           <Draggable
@@ -92,7 +93,7 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
                   : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
               }
             >
-              <div className={contentClassName} style={textAnswerStyle}>
+              <div className={contentClassName} style={shouldUseLatex ? undefined : textAnswerStyle}>
                 {displayContent}
               </div>
               {result.steps.length > 0 && (
