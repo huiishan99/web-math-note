@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-05-27 - Polish whiteboard UI
+
+### Changed
+- Reworked the top controls into a compact translucent icon toolbar.
+- Added a subtle dotted canvas texture for a more note-like drawing surface.
+- Restyled inline answers to feel more like math ink and less like a web card.
+- Converted the variables panel into compact chips and moved status messages to a centered floating toast.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Move toward Math Notes-style inline answers
 
 ### Changed

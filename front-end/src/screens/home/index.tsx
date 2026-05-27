@@ -11,11 +11,12 @@ import type { InkBounds } from "@/lib/canvas";
 function getAnswerPosition(bounds: InkBounds) {
   const estimatedAnswerWidth = 180;
   const rightX = bounds.maxX + 28;
+  const expressionCenterY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
 
   if (rightX + estimatedAnswerWidth < window.innerWidth) {
     return {
       x: rightX,
-      y: Math.max(bounds.minY - 8, 88),
+      y: Math.max(expressionCenterY - 24, 84),
     };
   }
 
@@ -49,10 +50,10 @@ export default function Home() {
   };
 
   const statusMessage = notice || calculator.error || (calculator.isLoading ? "Solving..." : null);
-  const statusTone = calculator.error ? "border-red-400/30 bg-red-950/80 text-red-100" : "border-white/10 bg-zinc-950/85 text-white";
+  const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#090a0c] text-white">
       <CanvasBoard
         canvasRef={drawing.canvasRef}
         onPointerDown={drawing.startDrawing}
@@ -73,7 +74,7 @@ export default function Home() {
         <VariablePanel variables={calculator.variables} onRemove={calculator.removeVariable} />
       )}
       {statusMessage && (
-        <div className={`fixed bottom-4 left-4 z-30 rounded-md border px-3 py-2 text-sm shadow-lg backdrop-blur ${statusTone}`}>
+        <div className={`fixed bottom-4 left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusTone}`}>
           {statusMessage}
         </div>
       )}

@@ -54,11 +54,11 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
             <div
               className={
                 isInlineAnswer
-                  ? "pointer-events-auto absolute px-1 py-0 text-sky-100 drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]"
-                  : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-zinc-950/80 px-3 py-2 text-white shadow-lg backdrop-blur"
+                  ? "pointer-events-auto absolute px-1 py-0 text-[#8fdcff] drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
               }
             >
-              <div className={isInlineAnswer ? "latex-content text-3xl font-medium" : "latex-content text-lg"}>
+              <div className={isInlineAnswer ? "latex-content text-[2rem] font-medium leading-none" : "latex-content text-lg"}>
                 {latex}
               </div>
               {result.steps.length > 0 && (
