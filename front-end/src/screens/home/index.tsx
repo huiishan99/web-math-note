@@ -6,6 +6,24 @@ import { Toolbar } from "@/components/math-board/Toolbar";
 import { VariablePanel } from "@/components/math-board/VariablePanel";
 import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
+import type { InkBounds } from "@/lib/canvas";
+
+function getAnswerPosition(bounds: InkBounds) {
+  const estimatedAnswerWidth = 180;
+  const rightX = bounds.maxX + 28;
+
+  if (rightX + estimatedAnswerWidth < window.innerWidth) {
+    return {
+      x: rightX,
+      y: Math.max(bounds.minY - 8, 88),
+    };
+  }
+
+  return {
+    x: Math.max(Math.min(bounds.minX, window.innerWidth - estimatedAnswerWidth), 16),
+    y: Math.min(bounds.maxY + 18, window.innerHeight - 96),
+  };
+}
 
 export default function Home() {
   const drawing = useDrawingCanvas();
@@ -21,10 +39,7 @@ export default function Home() {
     }
 
     setNotice(null);
-    const solvedItems = await calculator.calculate(payload.image, payload.bounds.center);
-    if (solvedItems.length > 0) {
-      drawing.clearCanvas();
-    }
+    await calculator.calculate(payload.image, getAnswerPosition(payload.bounds));
   };
 
   const handleReset = () => {

@@ -1,5 +1,15 @@
 # Devlog
 
+## 2026-05-27 - Move toward Math Notes-style inline answers
+
+### Changed
+- Kept handwritten canvas content after solving instead of clearing the board.
+- Rendered simple answers as inline `= answer` text near the handwritten expression.
+- Preserved the fuller result card only for assignments or problems with solver steps.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Tighten solver answer format
 
 ### Changed
