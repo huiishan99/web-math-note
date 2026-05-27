@@ -89,8 +89,8 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
             <div
               className={
                 isInlineAnswer
-                  ? "pointer-events-auto absolute px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
-                  : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
+                  ? "pointer-events-auto absolute cursor-grab px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] active:cursor-grabbing"
+                  : "pointer-events-auto absolute max-w-[min(24rem,calc(100vw-2rem))] cursor-grab rounded-md border border-white/10 bg-neutral-950/72 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-2xl active:cursor-grabbing"
               }
             >
               <div className={contentClassName} style={shouldUseLatex ? undefined : textAnswerStyle}>

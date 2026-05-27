@@ -24,11 +24,12 @@ export function Toolbar({
   onReset,
   onUndo,
 }: ToolbarProps) {
-  const toolButtonClass = "h-9 w-9 bg-white/[0.08] text-white hover:bg-white/[0.14] disabled:text-white/35";
+  const toolButtonClass = "h-10 w-10 bg-white/[0.07] text-white transition hover:bg-white/[0.13] active:scale-95 disabled:text-white/30 sm:h-9 sm:w-9";
+  const panelClass = "pointer-events-auto flex items-center rounded-md border border-white/10 bg-neutral-950/70 shadow-2xl shadow-black/35 backdrop-blur-2xl";
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-30 flex flex-col gap-2 rounded-md border border-white/10 bg-neutral-950/78 px-2 py-2 text-white shadow-2xl shadow-black/35 backdrop-blur-xl sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-4 sm:max-w-[calc(100vw-1rem)] sm:-translate-x-1/2 sm:flex-row sm:items-center">
-      <div className="flex items-center justify-center gap-2 sm:contents">
+    <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-0 right-0 z-30 flex flex-col items-center gap-2 px-3 text-white sm:bottom-auto sm:top-4 sm:flex-row sm:justify-center sm:px-4">
+      <div className={cn(panelClass, "gap-1 p-1")}>
         <Button
           type="button"
           size="icon"
@@ -36,6 +37,7 @@ export function Toolbar({
           className={toolButtonClass}
           onClick={onUndo}
           disabled={!canUndo || isLoading}
+          aria-label="Undo"
           title="Undo"
         >
           <Undo2 />
@@ -48,6 +50,7 @@ export function Toolbar({
           className={toolButtonClass}
           onClick={onReset}
           disabled={isLoading}
+          aria-label="Reset"
           title="Reset"
         >
           <RotateCcw />
@@ -59,7 +62,8 @@ export function Toolbar({
           variant="ghost"
           onClick={onRun}
           disabled={isLoading}
-          className="h-9 w-9 shrink-0 bg-white text-black hover:bg-white/90 disabled:bg-white/60"
+          className="h-10 w-10 shrink-0 bg-white text-black transition hover:bg-white/90 active:scale-95 disabled:bg-white/60 sm:h-9 sm:w-9"
+          aria-label="Solve"
           title="Solve"
         >
           {isLoading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
@@ -67,21 +71,27 @@ export function Toolbar({
         </Button>
       </div>
 
-      <div className="hidden h-8 w-px shrink-0 bg-white/10 sm:block" />
-
-      <Group gap={6} className="min-w-0 justify-center overflow-x-auto pb-0.5 sm:min-w-max sm:overflow-visible sm:pb-0">
+      <Group
+        gap={6}
+        className={cn(
+          panelClass,
+          "max-w-full min-w-0 justify-start overflow-x-auto p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:min-w-max sm:justify-center sm:overflow-visible [&::-webkit-scrollbar]:hidden",
+        )}
+      >
         {SWATCHES.map((swatch) => (
           <button
             key={swatch}
             type="button"
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] transition",
-              color === swatch ? "border-white/70 shadow-[0_0_0_2px_rgba(255,255,255,0.28)]" : "hover:border-white/40",
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.05] transition hover:border-white/40 active:scale-95 sm:h-8 sm:w-8",
+              color === swatch ? "border-white/75 bg-white/[0.13] shadow-[0_0_0_2px_rgba(255,255,255,0.26)]" : "",
             )}
             onClick={() => onColorChange(swatch)}
+            aria-label={`Ink ${swatch}`}
+            aria-pressed={color === swatch}
             title={`Ink ${swatch}`}
           >
-            <ColorSwatch color={swatch} size={18} radius={4} />
+            <ColorSwatch color={swatch} size={20} radius={4} />
           </button>
         ))}
       </Group>

@@ -1,5 +1,17 @@
 # Devlog
 
+## 2026-05-27 - Polish whiteboard UI chrome
+
+### Changed
+- Reworked the drawing surface into a subtler dark graph-paper texture.
+- Split the toolbar into lightweight floating action and color palettes.
+- Increased mobile tap targets and hid the color strip scrollbar for a cleaner phone layout.
+- Centered saved-variable chips on mobile and made draggable results feel more direct.
+
+### Verification
+- Ran frontend lint and production build.
+- Captured 390px mobile and 1365px desktop Chrome screenshots of the local app.
+
 ## 2026-05-27 - Refine mobile toolbar responsiveness
 
 ### Changed
