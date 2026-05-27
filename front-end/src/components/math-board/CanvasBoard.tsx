@@ -1,7 +1,11 @@
 import type { PointerEventHandler, RefObject } from "react";
 
+import type { DrawingTool } from "@/hooks/useDrawingCanvas";
+import { cn } from "@/lib/utils";
+
 interface CanvasBoardProps {
   canvasRef: RefObject<HTMLCanvasElement>;
+  tool: DrawingTool;
   onPointerDown: PointerEventHandler<HTMLCanvasElement>;
   onPointerMove: PointerEventHandler<HTMLCanvasElement>;
   onPointerUp: PointerEventHandler<HTMLCanvasElement>;
@@ -9,6 +13,7 @@ interface CanvasBoardProps {
 
 export function CanvasBoard({
   canvasRef,
+  tool,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -16,7 +21,12 @@ export function CanvasBoard({
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 h-full w-full touch-none cursor-crosshair bg-[#08090b]"
+      className={cn(
+        "absolute inset-0 h-full w-full touch-none bg-[#08090b]",
+        tool === "pen" && "cursor-crosshair",
+        tool === "eraser" && "cursor-cell",
+        tool === "select" && "cursor-default",
+      )}
       style={{
         backgroundImage: [
           "linear-gradient(rgba(255,255,255,0.026) 1px, transparent 1px)",

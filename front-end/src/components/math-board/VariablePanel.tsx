@@ -27,7 +27,7 @@ export function VariablePanel({ variables, onRemove }: VariablePanelProps) {
               type="button"
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-white/55 hover:bg-white/10 hover:text-white"
+              className="!h-6 !w-6 text-white/55 hover:bg-white/10 hover:text-white"
               onClick={() => onRemove(name)}
               title={`Remove ${name}`}
             >

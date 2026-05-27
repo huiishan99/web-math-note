@@ -1,5 +1,20 @@
 # Devlog
 
+## 2026-05-28 - Add Math Notes interaction polish
+
+### Changed
+- Added pen, eraser, and select modes with a compact floating tool layout.
+- Added adjustable stroke width and smoother pressure-aware ink curves.
+- Preserved existing ink when the canvas resizes during mobile browser viewport changes.
+- Added a subtle empty-board sample and a nonverbal solving pulse.
+- Animated new answers into place and moved long natural-language answers into compact result cards.
+- Added double-click result copying and copy buttons for card-style answers.
+
+### Verification
+- Ran frontend lint and production build.
+- Verified 390px mobile layout with Chrome DevTools emulation and captured a mobile screenshot.
+- Captured a 1365px desktop Chrome screenshot of the local app.
+
 ## 2026-05-27 - Polish whiteboard UI chrome
 
 ### Changed
