@@ -27,35 +27,49 @@ export function Toolbar({
   const toolButtonClass = "h-9 w-9 bg-white/[0.08] text-white hover:bg-white/[0.14] disabled:text-white/35";
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-30 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-md border border-white/10 bg-neutral-950/75 px-2 py-2 text-white shadow-2xl shadow-black/35 backdrop-blur-xl sm:bottom-auto sm:top-4">
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className={toolButtonClass}
-        onClick={onUndo}
-        disabled={!canUndo || isLoading}
-        title="Undo"
-      >
-        <Undo2 />
-        <span className="sr-only">Undo</span>
-      </Button>
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className={toolButtonClass}
-        onClick={onReset}
-        disabled={isLoading}
-        title="Reset"
-      >
-        <RotateCcw />
-        <span className="sr-only">Reset</span>
-      </Button>
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-30 flex flex-col gap-2 rounded-md border border-white/10 bg-neutral-950/78 px-2 py-2 text-white shadow-2xl shadow-black/35 backdrop-blur-xl sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-4 sm:max-w-[calc(100vw-1rem)] sm:-translate-x-1/2 sm:flex-row sm:items-center">
+      <div className="flex items-center justify-center gap-2 sm:contents">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={toolButtonClass}
+          onClick={onUndo}
+          disabled={!canUndo || isLoading}
+          title="Undo"
+        >
+          <Undo2 />
+          <span className="sr-only">Undo</span>
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={toolButtonClass}
+          onClick={onReset}
+          disabled={isLoading}
+          title="Reset"
+        >
+          <RotateCcw />
+          <span className="sr-only">Reset</span>
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={onRun}
+          disabled={isLoading}
+          className="h-9 w-9 shrink-0 bg-white text-black hover:bg-white/90 disabled:bg-white/60"
+          title="Solve"
+        >
+          {isLoading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+          <span className="sr-only">Solve</span>
+        </Button>
+      </div>
 
-      <div className="mx-1 h-8 w-px shrink-0 bg-white/10" />
+      <div className="hidden h-8 w-px shrink-0 bg-white/10 sm:block" />
 
-      <Group gap={6} className="min-w-max">
+      <Group gap={6} className="min-w-0 justify-center overflow-x-auto pb-0.5 sm:min-w-max sm:overflow-visible sm:pb-0">
         {SWATCHES.map((swatch) => (
           <button
             key={swatch}
@@ -71,21 +85,6 @@ export function Toolbar({
           </button>
         ))}
       </Group>
-
-      <div className="mx-1 h-8 w-px shrink-0 bg-white/10" />
-
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        onClick={onRun}
-        disabled={isLoading}
-        className="h-9 w-9 shrink-0 bg-white text-black hover:bg-white/90 disabled:bg-white/60"
-        title="Solve"
-      >
-        {isLoading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-        <span className="sr-only">Solve</span>
-      </Button>
     </div>
   );
 }

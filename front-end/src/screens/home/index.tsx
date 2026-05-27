@@ -8,7 +8,7 @@ import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 import type { InkBounds } from "@/lib/canvas";
 
-function getAnswerPosition(bounds: InkBounds) {
+function getAnswerPosition(bounds: InkBounds, hasVariables: boolean) {
   const isNarrowViewport = window.innerWidth < 640;
   const estimatedAnswerWidth = isNarrowViewport ? Math.min(300, window.innerWidth - 32) : 180;
   const rightX = bounds.maxX + 28;
@@ -21,7 +21,7 @@ function getAnswerPosition(bounds: InkBounds) {
     };
   }
 
-  const bottomSafeArea = isNarrowViewport ? 132 : 96;
+  const bottomSafeArea = isNarrowViewport ? (hasVariables ? 260 : 180) : 96;
 
   return {
     x: Math.max(Math.min(bounds.minX, window.innerWidth - estimatedAnswerWidth), 16),
@@ -43,7 +43,7 @@ export default function Home() {
     }
 
     setNotice(null);
-    await calculator.calculate(payload.image, getAnswerPosition(payload.bounds));
+    await calculator.calculate(payload.image, getAnswerPosition(payload.bounds, calculator.hasVariables));
   };
 
   const handleReset = () => {
@@ -54,9 +54,12 @@ export default function Home() {
 
   const statusMessage = notice || calculator.error || (calculator.isLoading ? "Solving..." : null);
   const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
+  const statusPosition = calculator.hasVariables
+    ? "bottom-[calc(env(safe-area-inset-bottom)+13rem)] sm:bottom-4"
+    : "bottom-[calc(env(safe-area-inset-bottom)+7.5rem)] sm:bottom-4";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#090a0c] text-white">
+    <main className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#090a0c] text-white">
       <CanvasBoard
         canvasRef={drawing.canvasRef}
         onPointerDown={drawing.startDrawing}
@@ -77,7 +80,7 @@ export default function Home() {
         <VariablePanel variables={calculator.variables} onRemove={calculator.removeVariable} />
       )}
       {statusMessage && (
-        <div className={`fixed bottom-20 left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl sm:bottom-4 ${statusTone}`}>
+        <div className={`fixed left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition} ${statusTone}`}>
           {statusMessage}
         </div>
       )}

@@ -1,5 +1,17 @@
 # Devlog
 
+## 2026-05-27 - Refine mobile toolbar responsiveness
+
+### Changed
+- Changed the mobile toolbar from a compressed desktop row into a two-row bottom palette.
+- Added safe-area-aware spacing for the toolbar, status toast, variable chips, and answer placement.
+- Moved the mobile status toast above saved-variable chips and added extra answer clearance when variables are present.
+- Switched the app shell to dynamic viewport height for better mobile browser behavior.
+- Limited mobile variable chip height so saved variables do not cover the drawing area.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Improve responsive whiteboard layout
 
 ### Changed
