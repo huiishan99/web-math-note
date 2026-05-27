@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-05-27 - Tighten solver answer format
+
+### Changed
+- Updated the Gemini prompt to behave like a calculator for simple arithmetic.
+- Required simple expressions such as `1 + 1 = ?` to return a short final answer with empty `steps`.
+- Lowered generation temperature for more deterministic solver responses.
+
+### Verification
+- Ran backend Python compile checks.
+- Sent a generated `1 + 1 = ?` image through `/calculate` and confirmed the response was `result: "2"` with empty `steps`.
+
 ## 2026-05-27 - Update Gemini default model
 
 ### Changed

@@ -39,7 +39,11 @@ class VisionSolverService:
         try:
             response = self.model.generate_content(
                 [build_solver_prompt(dict_of_vars), img],
-                generation_config={"response_mime_type": "application/json"},
+                generation_config={
+                    "response_mime_type": "application/json",
+                    "temperature": 0,
+                    "max_output_tokens": 1024,
+                },
             )
         except Exception as exc:
             raise SolverProviderError(
