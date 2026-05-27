@@ -1,5 +1,14 @@
 # Devlog
 
+## 2026-05-27 - Preserve spaces in text answers
+
+### Changed
+- Render natural-language solver results as plain text instead of LaTeX math.
+- Kept MathJax rendering for math-like answers so numeric and symbolic results still look polished.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Polish whiteboard UI
 
 ### Changed

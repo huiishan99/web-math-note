@@ -17,6 +17,28 @@ function formatResult(value: VariableValue) {
   return String(value);
 }
 
+function isMathLike(value: string) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return false;
+  }
+
+  const hasLetters = /[A-Za-z]/.test(trimmedValue);
+  const hasWordSpacing = /[A-Za-z]\s+[A-Za-z]/.test(trimmedValue);
+  const hasMathOperators = /[=+\-*/^√(){}[\]<>≤≥≈∞∫∑π]/.test(trimmedValue);
+
+  return !hasWordSpacing && (!hasLetters || hasMathOperators || trimmedValue.length <= 3);
+}
+
+function getResultText(result: CalculationItem) {
+  const answer = formatResult(result.result);
+  if (!result.assign && result.steps.length === 0) {
+    return `= ${answer}`;
+  }
+
+  return `${result.expr} = ${answer}`;
+}
+
 function getResultLatex(result: CalculationItem) {
   const answer = formatResult(result.result);
   if (!result.assign && result.steps.length === 0) {
@@ -42,7 +64,9 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
     <div className="pointer-events-none absolute inset-0 z-20">
       {results.map((result) => {
         const isInlineAnswer = !result.assign && result.steps.length === 0;
-        const latex = getResultLatex(result);
+        const resultText = getResultText(result);
+        const shouldUseLatex = isMathLike(resultText);
+        const displayContent = shouldUseLatex ? getResultLatex(result) : resultText;
 
         return (
           <Draggable
@@ -58,8 +82,14 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
                   : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
               }
             >
-              <div className={isInlineAnswer ? "latex-content text-[2rem] font-medium leading-none" : "latex-content text-lg"}>
-                {latex}
+              <div
+                className={
+                  isInlineAnswer
+                    ? "latex-content whitespace-pre-wrap text-[2rem] font-medium leading-none"
+                    : "latex-content whitespace-pre-wrap text-lg"
+                }
+              >
+                {displayContent}
               </div>
               {result.steps.length > 0 && (
                 <ol className="mt-2 space-y-1 text-xs leading-relaxed text-zinc-300">
