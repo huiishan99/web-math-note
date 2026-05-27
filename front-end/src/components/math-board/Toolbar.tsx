@@ -27,7 +27,7 @@ export function Toolbar({
   const toolButtonClass = "h-9 w-9 bg-white/[0.08] text-white hover:bg-white/[0.14] disabled:text-white/35";
 
   return (
-    <div className="fixed left-1/2 top-4 z-30 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-md border border-white/10 bg-neutral-950/75 px-2 py-2 text-white shadow-2xl shadow-black/35 backdrop-blur-xl">
+    <div className="fixed bottom-4 left-1/2 z-30 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-md border border-white/10 bg-neutral-950/75 px-2 py-2 text-white shadow-2xl shadow-black/35 backdrop-blur-xl sm:bottom-auto sm:top-4">
       <Button
         type="button"
         size="icon"
@@ -80,7 +80,7 @@ export function Toolbar({
         variant="ghost"
         onClick={onRun}
         disabled={isLoading}
-        className="h-9 w-9 shrink-0 bg-sky-300 text-black hover:bg-sky-200 disabled:bg-sky-300/60"
+        className="h-9 w-9 shrink-0 bg-white text-black hover:bg-white/90 disabled:bg-white/60"
         title="Solve"
       >
         {isLoading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}

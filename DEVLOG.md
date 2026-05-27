@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-05-27 - Improve responsive whiteboard layout
+
+### Changed
+- Changed inline answer text from blue to white.
+- Moved the compact toolbar to the bottom on narrow screens and kept it at the top on wider screens.
+- Added safer mobile positioning for answer overlays, variable chips, and status toasts.
+- Made the solve button neutral white to match the result ink.
+
+### Verification
+- Ran frontend lint and production build.
+
 ## 2026-05-27 - Align text answers with MathJax typography
 
 ### Changed

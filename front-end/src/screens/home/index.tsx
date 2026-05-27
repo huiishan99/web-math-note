@@ -9,20 +9,23 @@ import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 import type { InkBounds } from "@/lib/canvas";
 
 function getAnswerPosition(bounds: InkBounds) {
-  const estimatedAnswerWidth = 180;
+  const isNarrowViewport = window.innerWidth < 640;
+  const estimatedAnswerWidth = isNarrowViewport ? Math.min(300, window.innerWidth - 32) : 180;
   const rightX = bounds.maxX + 28;
   const expressionCenterY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
 
-  if (rightX + estimatedAnswerWidth < window.innerWidth) {
+  if (!isNarrowViewport && rightX + estimatedAnswerWidth < window.innerWidth) {
     return {
       x: rightX,
       y: Math.max(expressionCenterY - 24, 84),
     };
   }
 
+  const bottomSafeArea = isNarrowViewport ? 132 : 96;
+
   return {
     x: Math.max(Math.min(bounds.minX, window.innerWidth - estimatedAnswerWidth), 16),
-    y: Math.min(bounds.maxY + 18, window.innerHeight - 96),
+    y: Math.min(bounds.maxY + 18, window.innerHeight - bottomSafeArea),
   };
 }
 
@@ -74,7 +77,7 @@ export default function Home() {
         <VariablePanel variables={calculator.variables} onRemove={calculator.removeVariable} />
       )}
       {statusMessage && (
-        <div className={`fixed bottom-4 left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusTone}`}>
+        <div className={`fixed bottom-20 left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl sm:bottom-4 ${statusTone}`}>
           {statusMessage}
         </div>
       )}

@@ -89,7 +89,7 @@ export function ResultLayer({ results, onMove }: ResultLayerProps) {
             <div
               className={
                 isInlineAnswer
-                  ? "pointer-events-auto absolute px-1 py-0 text-[#8fdcff] drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  ? "pointer-events-auto absolute px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
                   : "pointer-events-auto absolute max-w-sm rounded-md border border-white/10 bg-neutral-950/78 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-xl"
               }
             >
