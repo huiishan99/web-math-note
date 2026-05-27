@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-05-27 - Update Gemini default model
+
+### Changed
+- Updated the backend default Gemini model from `gemini-1.5-flash` to `gemini-2.5-flash`.
+- Updated `back-end/.env.example` to match the current working Flash model.
+- Added `.DS_Store` to `.gitignore` after Finder created local metadata files.
+
+### Verification
+- Confirmed the saved Gemini API key can list available Flash models.
+- Confirmed `models/gemini-2.5-flash` is available for `generateContent`.
+
 ## 2026-05-24 - Refactor AI math whiteboard
 
 ### Changed
