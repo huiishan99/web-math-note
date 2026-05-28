@@ -1,15 +1,27 @@
 import { useMemo, useState } from "react";
 import Draggable from "react-draggable";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useMathJax } from "@/hooks/useMathJax";
-import type { CalculationItem, Position, VariableValue } from "@/types/calculator";
+import type { DrawingTool } from "@/hooks/useDrawingCanvas";
+import {
+  formatResultValue,
+  getResultLatex,
+  getResultText,
+  isMathLikeResult,
+  shouldUseResultCard,
+} from "@/lib/result-format";
+import type { CalculationItem, Position } from "@/types/calculator";
 import { cn } from "@/lib/utils";
 
 interface ResultLayerProps {
   results: CalculationItem[];
+  selectedResultId: string | null;
+  tool: DrawingTool;
+  onDelete: (id: string) => void;
   onMove: (id: string, position: Position) => void;
+  onSelect: (id: string | null) => void;
   onCopy?: (message: string) => void;
 }
 
@@ -19,53 +31,19 @@ const textAnswerStyle = {
   letterSpacing: 0,
 };
 
-function formatResult(value: VariableValue) {
-  if (value === null) {
-    return "null";
-  }
-
-  return String(value);
-}
-
-function isMathLike(value: string) {
-  const trimmedValue = value.trim();
-  if (!trimmedValue) {
-    return false;
-  }
-
-  const hasLetters = /[A-Za-z]/.test(trimmedValue);
-  const hasWordSpacing = /[A-Za-z]\s+[A-Za-z]/.test(trimmedValue);
-  const hasMathOperators = /[=+\-*/^√(){}[\]<>≤≥≈∞∫∑π]/.test(trimmedValue);
-
-  return !hasWordSpacing && (!hasLetters || hasMathOperators || trimmedValue.length <= 3);
-}
-
-function getResultText(result: CalculationItem, cardText = false) {
-  const answer = formatResult(result.result);
-  if (cardText && !result.assign && result.steps.length === 0) {
-    return answer;
-  }
-
-  if (!result.assign && result.steps.length === 0) {
-    return `= ${answer}`;
-  }
-
-  return `${result.expr} = ${answer}`;
-}
-
-function getResultLatex(result: CalculationItem) {
-  const answer = formatResult(result.result);
-  if (!result.assign && result.steps.length === 0) {
-    return `\\(\\LARGE{= ${answer}}\\)`;
-  }
-
-  return `\\(\\large{${result.expr} = ${answer}}\\)`;
-}
-
-export function ResultLayer({ results, onMove, onCopy }: ResultLayerProps) {
+export function ResultLayer({
+  results,
+  selectedResultId,
+  tool,
+  onDelete,
+  onMove,
+  onSelect,
+  onCopy,
+}: ResultLayerProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const isSelectMode = tool === "select";
   const mathJaxKey = useMemo(
-    () => results.map((result) => `${result.id}:${result.expr}:${formatResult(result.result)}`).join("|"),
+    () => results.map((result) => `${result.id}:${result.expr}:${formatResultValue(result.result)}`).join("|"),
     [results],
   );
 
@@ -90,10 +68,8 @@ export function ResultLayer({ results, onMove, onCopy }: ResultLayerProps) {
     <div className="pointer-events-none absolute inset-0 z-20">
       {results.map((result) => {
         const resultText = getResultText(result);
-        const shouldUseLatex = isMathLike(resultText);
-        const shouldUseCard = result.assign
-          || result.steps.length > 0
-          || (!shouldUseLatex && formatResult(result.result).length > 28);
+        const shouldUseLatex = isMathLikeResult(resultText);
+        const shouldUseCard = shouldUseResultCard(result, resultText);
         const isInlineAnswer = !shouldUseCard;
         const plainText = getResultText(result, shouldUseCard && !shouldUseLatex);
         const displayContent = shouldUseLatex ? getResultLatex(result) : plainText;
@@ -103,6 +79,7 @@ export function ResultLayer({ results, onMove, onCopy }: ResultLayerProps) {
             ? "max-w-[min(26rem,calc(100vw-2rem))] whitespace-pre-wrap text-[1.8rem] leading-tight"
             : "max-w-sm whitespace-pre-wrap pr-8 text-base leading-relaxed");
         const copyText = shouldUseLatex ? resultText : plainText;
+        const isSelected = selectedResultId === result.id;
 
         return (
           <Draggable
@@ -118,10 +95,46 @@ export function ResultLayer({ results, onMove, onCopy }: ResultLayerProps) {
                 isInlineAnswer
                   ? "pointer-events-auto absolute cursor-grab px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] active:cursor-grabbing"
                   : "pointer-events-auto absolute max-w-[min(24rem,calc(100vw-2rem))] cursor-grab rounded-md border border-white/10 bg-neutral-950/72 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-2xl active:cursor-grabbing",
+                isSelected && "rounded-md ring-1 ring-white/60",
               )}
+              onClick={(event) => {
+                if (!isSelectMode) {
+                  return;
+                }
+                event.stopPropagation();
+                onSelect(result.id);
+              }}
               onDoubleClick={() => copyResult(result.id, copyText)}
               title="Double-click to copy"
             >
+              {isSelected && (
+                <div className="absolute -right-1 -top-9 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="!h-7 !w-7 text-white/65 hover:bg-white/10 hover:text-white"
+                    onClick={() => copyResult(result.id, copyText)}
+                    aria-label="Copy selected result"
+                    title="Copy"
+                  >
+                    {copiedId === result.id ? <Check /> : <Copy />}
+                    <span className="sr-only">Copy selected result</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="!h-7 !w-7 text-red-100/80 hover:bg-red-400/15 hover:text-red-50"
+                    onClick={() => onDelete(result.id)}
+                    aria-label="Delete selected result"
+                    title="Delete"
+                  >
+                    <Trash2 />
+                    <span className="sr-only">Delete selected result</span>
+                  </Button>
+                </div>
+              )}
               <div className={contentClassName} style={shouldUseLatex ? undefined : textAnswerStyle}>
                 {displayContent}
               </div>

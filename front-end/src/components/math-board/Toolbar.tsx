@@ -1,5 +1,6 @@
 import { ColorSwatch, Group } from "@mantine/core";
 import {
+  Download,
   Eraser,
   type LucideIcon,
   LoaderCircle,
@@ -20,11 +21,13 @@ interface ToolbarProps {
   tool: DrawingTool;
   strokeWidth: number;
   canUndo: boolean;
+  canExport: boolean;
   isLoading: boolean;
   onColorChange: (color: string) => void;
   onToolChange: (tool: DrawingTool) => void;
   onStrokeWidthChange: (width: number) => void;
   onRun: () => void;
+  onExport: () => void;
   onReset: () => void;
   onUndo: () => void;
 }
@@ -40,11 +43,13 @@ export function Toolbar({
   tool,
   strokeWidth,
   canUndo,
+  canExport,
   isLoading,
   onColorChange,
   onToolChange,
   onStrokeWidthChange,
   onRun,
+  onExport,
   onReset,
   onUndo,
 }: ToolbarProps) {
@@ -130,6 +135,19 @@ export function Toolbar({
       >
         <RotateCcw />
         <span className="sr-only">Reset</span>
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={toolButtonClass}
+        onClick={onExport}
+        disabled={!canExport || isLoading}
+        aria-label="Export PNG"
+        title="Export PNG"
+      >
+        <Download />
+        <span className="sr-only">Export PNG</span>
       </Button>
       <Button
         type="button"

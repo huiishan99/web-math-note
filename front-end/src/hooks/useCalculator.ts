@@ -90,12 +90,32 @@ export function useCalculator() {
     )));
   }, []);
 
+  const deleteResult = useCallback((id: string) => {
+    setResults((currentResults) => currentResults.filter((result) => result.id !== id));
+    setVariables((currentVariables) => {
+      const deletedResult = results.find((result) => result.id === id);
+      if (!deletedResult?.assign || !(deletedResult.expr in currentVariables)) {
+        return currentVariables;
+      }
+
+      const nextVariables = { ...currentVariables };
+      delete nextVariables[deletedResult.expr];
+      return nextVariables;
+    });
+  }, [results]);
+
   const removeVariable = useCallback((name: string) => {
     setVariables((currentVariables) => {
       const nextVariables = { ...currentVariables };
       delete nextVariables[name];
       return nextVariables;
     });
+  }, []);
+
+  const replaceState = useCallback((nextResults: CalculationItem[], nextVariables: VariableMap) => {
+    setResults(nextResults);
+    setVariables(nextVariables);
+    setError(null);
   }, []);
 
   const clearAll = useCallback(() => {
@@ -112,8 +132,10 @@ export function useCalculator() {
     error,
     setError,
     calculate,
+    deleteResult,
     moveResult,
     removeVariable,
+    replaceState,
     clearAll,
   };
 }

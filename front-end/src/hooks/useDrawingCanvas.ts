@@ -9,6 +9,12 @@ interface CanvasPayload {
   bounds: InkBounds;
 }
 
+export interface CanvasSnapshot {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
 export type DrawingTool = "pen" | "eraser" | "select";
 
 interface Point {
@@ -37,6 +43,8 @@ export function useDrawingCanvas() {
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [canUndo, setCanUndo] = useState(false);
   const [hasInk, setHasInk] = useState(false);
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
+  const [canvasVersion, setCanvasVersion] = useState(0);
 
   const configureContext = useCallback((canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext("2d");
@@ -58,6 +66,16 @@ export function useDrawingCanvas() {
     ctx.fillStyle = tool === "eraser" ? "rgba(0,0,0,1)" : color;
     ctx.lineWidth = tool === "eraser" ? Math.max(24, strokeWidth * 5) : pressureWidth;
   }, [color, strokeWidth, tool]);
+
+  const refreshInkPresence = useCallback(() => {
+    const canvas = canvasRef.current;
+    setHasInk(Boolean(canvas && getInkBounds(canvas)));
+  }, []);
+
+  const markCanvasChanged = useCallback(() => {
+    refreshInkPresence();
+    setCanvasVersion((version) => version + 1);
+  }, [refreshInkPresence]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -82,13 +100,15 @@ export function useDrawingCanvas() {
       if (hadContent) {
         canvas.getContext("2d")?.drawImage(previousCanvas, 0, 0);
       }
+      refreshInkPresence();
+      setIsCanvasReady(true);
     };
 
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [configureContext]);
+  }, [configureContext, refreshInkPresence]);
 
   const getPointerPosition = useCallback((event: PointerEvent<HTMLCanvasElement>): Point | null => {
     const canvas = canvasRef.current;
@@ -116,11 +136,6 @@ export function useDrawingCanvas() {
       historyRef.current.shift();
     }
     setCanUndo(historyRef.current.length > 0);
-  }, []);
-
-  const refreshInkPresence = useCallback(() => {
-    const canvas = canvasRef.current;
-    setHasInk(Boolean(canvas && getInkBounds(canvas)));
   }, []);
 
   const startDrawing = useCallback((event: PointerEvent<HTMLCanvasElement>) => {
@@ -204,8 +219,8 @@ export function useDrawingCanvas() {
     }
     pointsRef.current = [];
     isDrawingRef.current = false;
-    refreshInkPresence();
-  }, [configureStroke, refreshInkPresence]);
+    markCanvasChanged();
+  }, [configureStroke, markCanvasChanged]);
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -216,8 +231,8 @@ export function useDrawingCanvas() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = "source-over";
-    setHasInk(false);
-  }, []);
+    markCanvasChanged();
+  }, [markCanvasChanged]);
 
   const resetCanvas = useCallback(() => {
     clearCanvas();
@@ -237,8 +252,54 @@ export function useDrawingCanvas() {
     ctx.putImageData(previous, 0, 0);
     ctx.globalCompositeOperation = "source-over";
     setCanUndo(historyRef.current.length > 0);
-    refreshInkPresence();
-  }, [refreshInkPresence]);
+    markCanvasChanged();
+  }, [markCanvasChanged]);
+
+  const getCanvasSnapshot = useCallback((): CanvasSnapshot | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !getInkBounds(canvas)) {
+      return null;
+    }
+
+    return {
+      dataUrl: canvas.toDataURL("image/png"),
+      width: canvas.width,
+      height: canvas.height,
+    };
+  }, []);
+
+  const loadCanvasSnapshot = useCallback((snapshot: CanvasSnapshot | null) => new Promise<void>((resolve) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) {
+      resolve();
+      return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "source-over";
+    historyRef.current = [];
+    setCanUndo(false);
+
+    if (!snapshot?.dataUrl) {
+      markCanvasChanged();
+      resolve();
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      markCanvasChanged();
+      resolve();
+    };
+    image.onerror = () => {
+      markCanvasChanged();
+      resolve();
+    };
+    image.src = snapshot.dataUrl;
+  }), [markCanvasChanged]);
 
   const getCanvasPayload = useCallback((): CanvasPayload | null => {
     const canvas = canvasRef.current;
@@ -267,6 +328,8 @@ export function useDrawingCanvas() {
     setStrokeWidth,
     canUndo,
     hasInk,
+    isCanvasReady,
+    canvasVersion,
     startDrawing,
     draw,
     stopDrawing,
@@ -274,5 +337,7 @@ export function useDrawingCanvas() {
     resetCanvas,
     undo,
     getCanvasPayload,
+    getCanvasSnapshot,
+    loadCanvasSnapshot,
   };
 }

@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-05-28 - Add notebook persistence and export workflow
+
+### Changed
+- Added local autosave for ink, results, variables, and active notebook pages.
+- Added a lightweight page strip for creating and switching between pages.
+- Added smarter answer placement that avoids existing result blocks before falling back.
+- Made Select mode actionable with result selection, copy, and delete controls.
+- Added PNG export for the board, ink, and rendered result text.
+- Preserved page state across refreshes with localStorage-backed notebook data.
+
+### Verification
+- Ran frontend lint and production build.
+- Captured mobile and desktop Chrome screenshots for the new notebook controls.
+- Verified adding pages writes to localStorage in Chrome DevTools.
+- Verified drawing ink autosaves and enables PNG export.
+
 ## 2026-05-28 - Add Math Notes interaction polish
 
 ### Changed
