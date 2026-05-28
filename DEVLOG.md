@@ -1,5 +1,20 @@
 # Devlog
 
+## 2026-05-28 - Add advanced notebook controls
+
+### Changed
+- Added notebook-level undo and redo history with keyboard shortcuts.
+- Added eraser radius feedback and select-mode marquee selection for result blocks.
+- Added accept and dismiss controls for pending AI results before assignments are saved.
+- Added notebook JSON import/export plus page thumbnails in the page strip.
+- Added a production PWA manifest/service-worker shell and clearer AI failure messages.
+
+### Verification
+- Ran frontend lint and production build.
+- Verified 390px mobile and 1365px desktop layouts in the in-app browser.
+- Verified undo and redo restore saved ink in browser testing.
+- Verified the manifest link, notebook import/export controls, and canvas shell render locally.
+
 ## 2026-05-28 - Add notebook persistence and export workflow
 
 ### Changed

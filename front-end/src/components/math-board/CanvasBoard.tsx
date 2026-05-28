@@ -7,6 +7,8 @@ interface CanvasBoardProps {
   canvasRef: RefObject<HTMLCanvasElement>;
   tool: DrawingTool;
   onPointerDown: PointerEventHandler<HTMLCanvasElement>;
+  onPointerEnter?: PointerEventHandler<HTMLCanvasElement>;
+  onPointerLeave?: PointerEventHandler<HTMLCanvasElement>;
   onPointerMove: PointerEventHandler<HTMLCanvasElement>;
   onPointerUp: PointerEventHandler<HTMLCanvasElement>;
 }
@@ -15,6 +17,8 @@ export function CanvasBoard({
   canvasRef,
   tool,
   onPointerDown,
+  onPointerEnter,
+  onPointerLeave,
   onPointerMove,
   onPointerUp,
 }: CanvasBoardProps) {
@@ -37,10 +41,11 @@ export function CanvasBoard({
         backgroundSize: "96px 96px, 96px 96px, 24px 24px",
       }}
       onPointerDown={onPointerDown}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave ?? onPointerUp}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onPointerLeave={onPointerUp}
     />
   );
 }

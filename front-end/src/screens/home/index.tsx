@@ -24,6 +24,7 @@ interface NotebookPage {
   title: string;
   ink: CanvasSnapshot | null;
   results: CalculationItem[];
+  thumbnail?: string | null;
   variables: VariableMap;
   updatedAt: number;
 }
@@ -34,6 +35,7 @@ interface StoredNotebook {
 }
 
 const STORAGE_KEY = "web-math-note:notebook:v1";
+const HISTORY_LIMIT = 50;
 
 function createPage(index: number): NotebookPage {
   return {
@@ -41,6 +43,7 @@ function createPage(index: number): NotebookPage {
     title: `Page ${index}`,
     ink: null,
     results: [],
+    thumbnail: null,
     variables: {},
     updatedAt: Date.now(),
   };
@@ -54,6 +57,36 @@ function createNotebook(): StoredNotebook {
   };
 }
 
+function normalizeNotebook(notebook: Partial<StoredNotebook> | null | undefined): StoredNotebook {
+  const pages = Array.isArray(notebook?.pages) ? notebook.pages : [];
+  if (pages.length === 0) {
+    return createNotebook();
+  }
+
+  const normalizedPages = pages.map((page, index) => ({
+    id: page.id || `page-${index + 1}`,
+    title: page.title || `Page ${index + 1}`,
+    ink: page.ink ?? null,
+    results: Array.isArray(page.results) ? page.results : [],
+    thumbnail: page.thumbnail ?? null,
+    variables: page.variables ?? {},
+    updatedAt: page.updatedAt ?? Date.now(),
+  }));
+
+  const activePageId = normalizedPages.some((page) => page.id === notebook?.activePageId)
+    ? String(notebook?.activePageId)
+    : normalizedPages[0].id;
+
+  return {
+    activePageId,
+    pages: normalizedPages,
+  };
+}
+
+function cloneNotebook(notebook: StoredNotebook): StoredNotebook {
+  return JSON.parse(JSON.stringify(notebook)) as StoredNotebook;
+}
+
 function loadStoredNotebook(): StoredNotebook {
   if (typeof window === "undefined") {
     return createNotebook();
@@ -65,27 +98,7 @@ function loadStoredNotebook(): StoredNotebook {
       return createNotebook();
     }
 
-    const parsedNotebook = JSON.parse(storedNotebook) as StoredNotebook;
-    const pages = Array.isArray(parsedNotebook.pages) ? parsedNotebook.pages : [];
-    if (pages.length === 0) {
-      return createNotebook();
-    }
-
-    const activePageId = pages.some((page) => page.id === parsedNotebook.activePageId)
-      ? parsedNotebook.activePageId
-      : pages[0].id;
-
-    return {
-      activePageId,
-      pages: pages.map((page, index) => ({
-        id: page.id || `page-${index + 1}`,
-        title: page.title || `Page ${index + 1}`,
-        ink: page.ink ?? null,
-        results: Array.isArray(page.results) ? page.results : [],
-        variables: page.variables ?? {},
-        updatedAt: page.updatedAt ?? Date.now(),
-      })),
-    };
+    return normalizeNotebook(JSON.parse(storedNotebook) as StoredNotebook);
   } catch {
     return createNotebook();
   }
@@ -180,10 +193,18 @@ export default function Home() {
   const [notebook, setNotebook] = useState<StoredNotebook>(loadStoredNotebook);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const [restoreRevision, setRestoreRevision] = useState(0);
+  const [, setHistoryVersion] = useState(0);
+  const [eraserCursor, setEraserCursor] = useState<Position | null>(null);
+  const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
+  const selectionStartRef = useRef<Position | null>(null);
   const isRestoringPageRef = useRef(false);
   const restoreTokenRef = useRef(0);
+  const undoStackRef = useRef<StoredNotebook[]>([]);
+  const redoStackRef = useRef<StoredNotebook[]>([]);
   const {
     canvasVersion,
+    getCanvasThumbnail,
     getCanvasSnapshot,
     isCanvasReady,
     loadCanvasSnapshot,
@@ -198,7 +219,45 @@ export default function Home() {
     () => notebook.pages.find((page) => page.id === notebook.activePageId) ?? notebook.pages[0],
     [notebook],
   );
+  const fileName = useMemo(() => getExportFilename(activePage?.title ?? "math-note"), [activePage?.title]);
   const activePageRef = useRef(activePage);
+  const canUndo = undoStackRef.current.length > 0;
+  const canRedo = redoStackRef.current.length > 0;
+
+  const createCurrentNotebookSnapshot = useCallback(() => cloneNotebook({
+    ...notebook,
+    pages: notebook.pages.map((page) => (
+      page.id === notebook.activePageId
+        ? {
+          ...page,
+          ink: getCanvasSnapshot(),
+          results,
+          thumbnail: getCanvasThumbnail(),
+          variables,
+          updatedAt: Date.now(),
+        }
+        : page
+    )),
+  }), [getCanvasSnapshot, getCanvasThumbnail, notebook, results, variables]);
+
+  const pushHistory = useCallback(() => {
+    if (isRestoringPageRef.current) {
+      return;
+    }
+
+    undoStackRef.current.push(createCurrentNotebookSnapshot());
+    if (undoStackRef.current.length > HISTORY_LIMIT) {
+      undoStackRef.current.shift();
+    }
+    redoStackRef.current = [];
+    setHistoryVersion((version) => version + 1);
+  }, [createCurrentNotebookSnapshot]);
+
+  const restoreNotebook = useCallback((nextNotebook: StoredNotebook) => {
+    isRestoringPageRef.current = true;
+    setNotebook(cloneNotebook(nextNotebook));
+    setRestoreRevision((revision) => revision + 1);
+  }, []);
 
   const updateActivePage = useCallback((updates: Partial<NotebookPage>) => {
     setNotebook((currentNotebook) => ({
@@ -230,7 +289,6 @@ export default function Home() {
     isRestoringPageRef.current = true;
     replaceState(page.results, page.variables);
     setSelectedResultId(null);
-    setNotice(null);
 
     loadCanvasSnapshot(page.ink).finally(() => {
       window.setTimeout(() => {
@@ -239,7 +297,7 @@ export default function Home() {
         }
       }, 0);
     });
-  }, [notebook.activePageId, isCanvasReady, loadCanvasSnapshot, replaceState]);
+  }, [notebook.activePageId, restoreRevision, isCanvasReady, loadCanvasSnapshot, replaceState]);
 
   useEffect(() => {
     if (!isCanvasReady || isRestoringPageRef.current) {
@@ -249,10 +307,12 @@ export default function Home() {
     updateActivePage({
       ink: getCanvasSnapshot(),
       results,
+      thumbnail: getCanvasThumbnail(),
       variables,
     });
   }, [
     canvasVersion,
+    getCanvasThumbnail,
     getCanvasSnapshot,
     isCanvasReady,
     results,
@@ -274,6 +334,7 @@ export default function Home() {
       return;
     }
 
+    pushHistory();
     setNotice(null);
     await calculator.calculate(
       payload.image,
@@ -282,12 +343,15 @@ export default function Home() {
   };
 
   const handleReset = () => {
+    pushHistory();
     drawing.resetCanvas();
     calculator.clearAll();
+    setSelectedResultId(null);
     setNotice(null);
   };
 
   const handleAddPage = () => {
+    pushHistory();
     setNotebook((currentNotebook) => {
       const nextPage = createPage(currentNotebook.pages.length + 1);
       return {
@@ -297,13 +361,46 @@ export default function Home() {
     });
   };
 
-  const handleDeleteResult = (id: string) => {
+  const handleSelectPage = (id: string) => {
+    if (id === notebook.activePageId) {
+      return;
+    }
+
+    pushHistory();
+    setNotebook((currentNotebook) => ({ ...currentNotebook, activePageId: id }));
+  };
+
+  const handleAcceptResult = (id: string) => {
+    pushHistory();
+    calculator.acceptResult(id);
+    setNotice("Result accepted.");
+  };
+
+  const handleDismissResult = (id: string) => {
+    pushHistory();
+    calculator.deleteResult(id);
+    setSelectedResultId(null);
+    setNotice("Result dismissed.");
+  };
+
+  const handleDeleteResult = useCallback((id: string) => {
+    pushHistory();
     calculator.deleteResult(id);
     setSelectedResultId(null);
     setNotice("Result removed.");
+  }, [calculator, pushHistory]);
+
+  const handleMoveResult = (id: string, position: Position) => {
+    pushHistory();
+    calculator.moveResult(id, position);
   };
 
-  const handleExport = () => {
+  const handleRemoveVariable = (name: string) => {
+    pushHistory();
+    calculator.removeVariable(name);
+  };
+
+  const handleExport = useCallback(() => {
     const canvas = drawing.canvasRef.current;
     if (!canvas || (!drawing.hasInk && calculator.results.length === 0)) {
       setNotice("Nothing to export yet.");
@@ -312,17 +409,168 @@ export default function Home() {
 
     const link = document.createElement("a");
     link.href = exportBoardAsPng(canvas, calculator.results);
-    link.download = getExportFilename(activePage?.title ?? "Math note");
+    link.download = fileName;
     link.click();
     setNotice("Exported PNG.");
+  }, [calculator.results, drawing.canvasRef, drawing.hasInk, fileName]);
+
+  const handleExportNotebook = () => {
+    const snapshot = createCurrentNotebookSnapshot();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "web-math-note.mathnote.json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    setNotice("Exported notebook.");
   };
+
+  const handleImportNotebook = async (file: File) => {
+    try {
+      const importedNotebook = normalizeNotebook(JSON.parse(await file.text()) as StoredNotebook);
+      pushHistory();
+      restoreNotebook(importedNotebook);
+      setNotice("Imported notebook.");
+    } catch {
+      setNotice("Could not import notebook.");
+    }
+  };
+
+  const handleUndo = useCallback(() => {
+    const previousNotebook = undoStackRef.current.pop();
+    if (!previousNotebook) {
+      return;
+    }
+
+    redoStackRef.current.push(createCurrentNotebookSnapshot());
+    restoreNotebook(previousNotebook);
+    setHistoryVersion((version) => version + 1);
+    setNotice("Undone.");
+  }, [createCurrentNotebookSnapshot, restoreNotebook]);
+
+  const handleRedo = useCallback(() => {
+    const nextNotebook = redoStackRef.current.pop();
+    if (!nextNotebook) {
+      return;
+    }
+
+    undoStackRef.current.push(createCurrentNotebookSnapshot());
+    restoreNotebook(nextNotebook);
+    setHistoryVersion((version) => version + 1);
+    setNotice("Redone.");
+  }, [createCurrentNotebookSnapshot, restoreNotebook]);
 
   const handleCanvasPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (drawing.tool === "select") {
       setSelectedResultId(null);
+      selectionStartRef.current = { x: event.clientX, y: event.clientY };
+      setSelectionRect({
+        x: event.clientX,
+        y: event.clientY,
+        width: 0,
+        height: 0,
+      });
+      return;
+    } else if (event.isPrimary) {
+      pushHistory();
+    }
+    if (drawing.tool === "eraser") {
+      setEraserCursor({ x: event.clientX, y: event.clientY });
     }
     drawing.startDrawing(event);
   };
+
+  const handleCanvasPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (drawing.tool === "select" && selectionStartRef.current) {
+      const start = selectionStartRef.current;
+      setSelectionRect({
+        x: Math.min(start.x, event.clientX),
+        y: Math.min(start.y, event.clientY),
+        width: Math.abs(event.clientX - start.x),
+        height: Math.abs(event.clientY - start.y),
+      });
+      return;
+    }
+
+    if (drawing.tool === "eraser") {
+      setEraserCursor({ x: event.clientX, y: event.clientY });
+    }
+    drawing.draw(event);
+  };
+
+  const handleCanvasPointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (drawing.tool === "select") {
+      const rect = selectionRect;
+      selectionStartRef.current = null;
+      setSelectionRect(null);
+
+      if (rect && rect.width > 8 && rect.height > 8) {
+        const selectedResult = [...calculator.results].reverse().find((result) => (
+          rectsIntersect(rect, estimateResultRect(result))
+        ));
+        setSelectedResultId(selectedResult?.id ?? null);
+      }
+      return;
+    }
+
+    drawing.stopDrawing(event);
+  };
+
+  const handleCanvasPointerLeave = (event: PointerEvent<HTMLCanvasElement>) => {
+    setEraserCursor(null);
+    selectionStartRef.current = null;
+    setSelectionRect(null);
+    drawing.stopDrawing(event);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isCommand = event.metaKey || event.ctrlKey;
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (isTyping) {
+        return;
+      }
+
+      if (isCommand && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleRedo();
+          return;
+        }
+        handleUndo();
+        return;
+      }
+
+      if (isCommand && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        handleExport();
+        return;
+      }
+
+      if ((event.key === "Backspace" || event.key === "Delete") && selectedResultId) {
+        event.preventDefault();
+        handleDeleteResult(selectedResultId);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setSelectedResultId(null);
+        return;
+      }
+
+      if (event.key.toLowerCase() === "p") {
+        drawing.setTool("pen");
+      } else if (event.key.toLowerCase() === "e") {
+        drawing.setTool("eraser");
+      } else if (event.key.toLowerCase() === "v") {
+        drawing.setTool("select");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [drawing, handleDeleteResult, handleExport, handleRedo, handleUndo, selectedResultId]);
 
   const statusMessage = notice || calculator.error;
   const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
@@ -337,14 +585,45 @@ export default function Home() {
         canvasRef={drawing.canvasRef}
         tool={drawing.tool}
         onPointerDown={handleCanvasPointerDown}
-        onPointerMove={drawing.draw}
-        onPointerUp={drawing.stopDrawing}
+        onPointerEnter={(event) => {
+          if (drawing.tool === "eraser") {
+            setEraserCursor({ x: event.clientX, y: event.clientY });
+          }
+        }}
+        onPointerLeave={handleCanvasPointerLeave}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={handleCanvasPointerUp}
       />
+      {selectionRect && (
+        <div
+          className="pointer-events-none fixed z-40 rounded-md border border-white/55 bg-white/[0.08]"
+          style={{
+            height: selectionRect.height,
+            left: selectionRect.x,
+            top: selectionRect.y,
+            width: selectionRect.width,
+          }}
+        />
+      )}
+      {drawing.tool === "eraser" && eraserCursor && (
+        <div
+          className="pointer-events-none fixed z-40 rounded-full border border-white/50 bg-white/[0.08] shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"
+          style={{
+            height: Math.max(24, drawing.strokeWidth * 5),
+            left: eraserCursor.x,
+            top: eraserCursor.y,
+            transform: "translate(-50%, -50%)",
+            width: Math.max(24, drawing.strokeWidth * 5),
+          }}
+        />
+      )}
       <PageStrip
         pages={notebook.pages}
         activePageId={notebook.activePageId}
         onAddPage={handleAddPage}
-        onSelectPage={(id) => setNotebook((currentNotebook) => ({ ...currentNotebook, activePageId: id }))}
+        onExportNotebook={handleExportNotebook}
+        onImportNotebook={handleImportNotebook}
+        onSelectPage={handleSelectPage}
       />
       {isEmpty && (
         <div className="pointer-events-none absolute left-1/2 top-[42%] z-10 -translate-x-1/2 -translate-y-1/2 select-none text-center">
@@ -357,8 +636,10 @@ export default function Home() {
         results={calculator.results}
         selectedResultId={selectedResultId}
         tool={drawing.tool}
+        onAccept={handleAcceptResult}
         onDelete={handleDeleteResult}
-        onMove={calculator.moveResult}
+        onDismiss={handleDismissResult}
+        onMove={handleMoveResult}
         onSelect={setSelectedResultId}
         onCopy={setNotice}
       />
@@ -366,7 +647,8 @@ export default function Home() {
         color={drawing.color}
         tool={drawing.tool}
         strokeWidth={drawing.strokeWidth}
-        canUndo={drawing.canUndo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         canExport={drawing.hasInk || calculator.results.length > 0}
         isLoading={calculator.isLoading}
         onColorChange={drawing.setColor}
@@ -374,8 +656,9 @@ export default function Home() {
         onStrokeWidthChange={drawing.setStrokeWidth}
         onRun={handleRun}
         onExport={handleExport}
+        onRedo={handleRedo}
         onReset={handleReset}
-        onUndo={drawing.undo}
+        onUndo={handleUndo}
       />
       {calculator.isLoading && !statusMessage && (
         <div
@@ -387,7 +670,7 @@ export default function Home() {
         </div>
       )}
       {calculator.hasVariables && (
-        <VariablePanel variables={calculator.variables} onRemove={calculator.removeVariable} />
+        <VariablePanel variables={calculator.variables} onRemove={handleRemoveVariable} />
       )}
       {statusMessage && (
         <div className={`fixed left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition} ${statusTone}`}>

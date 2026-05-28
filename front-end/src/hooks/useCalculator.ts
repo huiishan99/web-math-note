@@ -51,6 +51,7 @@ export function useCalculator() {
         result: normalizeResult(item.result),
         assign: Boolean(item.assign),
         steps: item.steps ?? [],
+        status: "pending" as const,
         position: {
           x: position.x,
           y: position.y + index * 72,
@@ -58,24 +59,24 @@ export function useCalculator() {
       }));
 
       setResults((currentResults) => [...currentResults, ...nextResults]);
-      setVariables((currentVariables) => {
-        const nextVariables = { ...currentVariables };
-        nextResults.forEach((item) => {
-          if (item.assign) {
-            nextVariables[item.expr] = item.result;
-          }
-        });
-        return nextVariables;
-      });
 
       return nextResults;
     } catch (requestError) {
       let detail = "Calculation failed.";
       if (axios.isAxiosError(requestError)) {
-        detail = requestError.response?.data?.detail
-          || (requestError.message === "Network Error"
-            ? `Cannot reach backend at ${API_URL}.`
-            : requestError.message);
+        const status = requestError.response?.status;
+        const responseDetail = requestError.response?.data?.detail;
+        if (requestError.message === "Network Error") {
+          detail = `Cannot reach backend at ${API_URL}.`;
+        } else if (status === 401 || status === 403) {
+          detail = responseDetail || "Gemini key is missing, invalid, or not allowed for this model.";
+        } else if (status === 429) {
+          detail = responseDetail || "Gemini quota or rate limit was reached.";
+        } else if (status && status >= 500) {
+          detail = responseDetail || "Backend or Gemini returned a server error.";
+        } else {
+          detail = responseDetail || requestError.message;
+        }
       }
       setError(String(detail));
       return [];
@@ -102,6 +103,21 @@ export function useCalculator() {
       delete nextVariables[deletedResult.expr];
       return nextVariables;
     });
+  }, [results]);
+
+  const acceptResult = useCallback((id: string) => {
+    const acceptedResult = results.find((result) => result.id === id);
+
+    setResults((currentResults) => currentResults.map((result) => (
+      result.id === id ? { ...result, status: "accepted" as const } : result
+    )));
+
+    if (acceptedResult?.assign) {
+      setVariables((currentVariables) => ({
+        ...currentVariables,
+        [acceptedResult.expr]: acceptedResult.result,
+      }));
+    }
   }, [results]);
 
   const removeVariable = useCallback((name: string) => {
@@ -131,6 +147,7 @@ export function useCalculator() {
     isLoading,
     error,
     setError,
+    acceptResult,
     calculate,
     deleteResult,
     moveResult,

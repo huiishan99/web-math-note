@@ -268,6 +268,29 @@ export function useDrawingCanvas() {
     };
   }, []);
 
+  const getCanvasThumbnail = useCallback((maxWidth = 96): string | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !getInkBounds(canvas)) {
+      return null;
+    }
+
+    const scale = maxWidth / canvas.width;
+    const thumbnailCanvas = document.createElement("canvas");
+    thumbnailCanvas.width = maxWidth;
+    thumbnailCanvas.height = Math.max(1, Math.round(canvas.height * scale));
+
+    const ctx = thumbnailCanvas.getContext("2d");
+    if (!ctx) {
+      return null;
+    }
+
+    ctx.fillStyle = "#08090b";
+    ctx.fillRect(0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+    ctx.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+
+    return thumbnailCanvas.toDataURL("image/png");
+  }, []);
+
   const loadCanvasSnapshot = useCallback((snapshot: CanvasSnapshot | null) => new Promise<void>((resolve) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -338,6 +361,7 @@ export function useDrawingCanvas() {
     undo,
     getCanvasPayload,
     getCanvasSnapshot,
+    getCanvasThumbnail,
     loadCanvasSnapshot,
   };
 }

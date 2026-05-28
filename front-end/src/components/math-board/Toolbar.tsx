@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   MousePointer2,
   PenLine,
+  Redo2,
   RotateCcw,
   Sparkles,
   Undo2,
@@ -21,6 +22,7 @@ interface ToolbarProps {
   tool: DrawingTool;
   strokeWidth: number;
   canUndo: boolean;
+  canRedo: boolean;
   canExport: boolean;
   isLoading: boolean;
   onColorChange: (color: string) => void;
@@ -28,6 +30,7 @@ interface ToolbarProps {
   onStrokeWidthChange: (width: number) => void;
   onRun: () => void;
   onExport: () => void;
+  onRedo: () => void;
   onReset: () => void;
   onUndo: () => void;
 }
@@ -43,6 +46,7 @@ export function Toolbar({
   tool,
   strokeWidth,
   canUndo,
+  canRedo,
   canExport,
   isLoading,
   onColorChange,
@@ -50,6 +54,7 @@ export function Toolbar({
   onStrokeWidthChange,
   onRun,
   onExport,
+  onRedo,
   onReset,
   onUndo,
 }: ToolbarProps) {
@@ -122,6 +127,19 @@ export function Toolbar({
       >
         <Undo2 />
         <span className="sr-only">Undo</span>
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={toolButtonClass}
+        onClick={onRedo}
+        disabled={!canRedo || isLoading}
+        aria-label="Redo"
+        title="Redo"
+      >
+        <Redo2 />
+        <span className="sr-only">Redo</span>
       </Button>
       <Button
         type="button"

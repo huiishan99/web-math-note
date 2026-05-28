@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import Draggable from "react-draggable";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useMathJax } from "@/hooks/useMathJax";
@@ -19,7 +19,9 @@ interface ResultLayerProps {
   results: CalculationItem[];
   selectedResultId: string | null;
   tool: DrawingTool;
+  onAccept: (id: string) => void;
   onDelete: (id: string) => void;
+  onDismiss: (id: string) => void;
   onMove: (id: string, position: Position) => void;
   onSelect: (id: string | null) => void;
   onCopy?: (message: string) => void;
@@ -35,7 +37,9 @@ export function ResultLayer({
   results,
   selectedResultId,
   tool,
+  onAccept,
   onDelete,
+  onDismiss,
   onMove,
   onSelect,
   onCopy,
@@ -80,6 +84,7 @@ export function ResultLayer({
             : "max-w-sm whitespace-pre-wrap pr-8 text-base leading-relaxed");
         const copyText = shouldUseLatex ? resultText : plainText;
         const isSelected = selectedResultId === result.id;
+        const isPending = result.status === "pending";
 
         return (
           <Draggable
@@ -96,6 +101,7 @@ export function ResultLayer({
                   ? "pointer-events-auto absolute cursor-grab px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] active:cursor-grabbing"
                   : "pointer-events-auto absolute max-w-[min(24rem,calc(100vw-2rem))] cursor-grab rounded-md border border-white/10 bg-neutral-950/72 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-2xl active:cursor-grabbing",
                 isSelected && "rounded-md ring-1 ring-white/60",
+                isPending && "rounded-md ring-1 ring-amber-100/35",
               )}
               onClick={(event) => {
                 if (!isSelectMode) {
@@ -106,9 +112,37 @@ export function ResultLayer({
               }}
               onDoubleClick={() => copyResult(result.id, copyText)}
               title="Double-click to copy"
-            >
-              {isSelected && (
+              >
+              {isPending && (
                 <div className="absolute -right-1 -top-9 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="!h-7 !w-7 text-emerald-100/85 hover:bg-emerald-400/15 hover:text-emerald-50"
+                    onClick={() => onAccept(result.id)}
+                    aria-label="Accept result"
+                    title="Accept"
+                  >
+                    <Check />
+                    <span className="sr-only">Accept result</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="!h-7 !w-7 text-white/65 hover:bg-white/10 hover:text-white"
+                    onClick={() => onDismiss(result.id)}
+                    aria-label="Dismiss result"
+                    title="Dismiss"
+                  >
+                    <X />
+                    <span className="sr-only">Dismiss result</span>
+                  </Button>
+                </div>
+              )}
+              {isSelected && (
+                <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
                   <Button
                     type="button"
                     size="icon"

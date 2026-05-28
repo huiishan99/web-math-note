@@ -12,6 +12,7 @@ export interface CalculationItem {
   assign: boolean;
   steps: string[];
   position: Position;
+  status?: "pending" | "accepted";
 }
 
 export interface CalculatorApiItem {

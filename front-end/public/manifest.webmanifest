@@ -1,0 +1,17 @@
+{
+  "name": "Math Note",
+  "short_name": "Math Note",
+  "description": "A local-first AI math whiteboard.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
+  "icons": [
+    {
+      "src": "/math-note-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
