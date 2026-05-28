@@ -212,17 +212,19 @@ export function Toolbar({
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+4rem)] left-3 right-3 z-30 text-white sm:hidden">
-        <div className="relative h-10">
-          <div className="absolute left-0 top-0">{renderToolPanel()}</div>
-          <div className="absolute left-1/2 top-0 -translate-x-1/2">{renderWidthControl()}</div>
-          <div className="absolute right-0 top-0">{renderActionPanel()}</div>
+      <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+4rem)] left-3 right-3 z-30 text-white xl:hidden">
+        <div className="mb-2 flex justify-center">
+          {renderWidthControl()}
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          {renderToolPanel()}
+          {renderActionPanel()}
         </div>
       </div>
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-30 text-white sm:hidden">
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-30 text-white xl:hidden">
         {renderColorPanel()}
       </div>
-      <div className="pointer-events-none fixed left-1/2 top-4 z-30 hidden -translate-x-1/2 items-center gap-2 px-4 text-white sm:flex">
+      <div className="pointer-events-none fixed left-[15.5rem] right-4 top-4 z-30 hidden items-center gap-2 overflow-x-auto text-white [-ms-overflow-style:none] [scrollbar-width:none] xl:flex [&::-webkit-scrollbar]:hidden">
         {renderToolPanel()}
         {renderWidthControl()}
         {renderActionPanel()}

@@ -137,12 +137,12 @@ function makeAnswerRect(position: Position, width: number, height: number): Rect
 }
 
 function getAnswerPosition(bounds: InkBounds, hasVariables: boolean, existingResults: CalculationItem[]) {
-  const isNarrowViewport = window.innerWidth < 640;
-  const estimatedAnswerWidth = isNarrowViewport ? Math.min(300, window.innerWidth - 32) : 180;
+  const isCompactViewport = window.innerWidth < 1280;
+  const estimatedAnswerWidth = window.innerWidth < 640 ? Math.min(300, window.innerWidth - 32) : 180;
   const estimatedAnswerHeight = 70;
   const rightX = bounds.maxX + 28;
   const expressionCenterY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
-  const bottomSafeArea = isNarrowViewport ? (hasVariables ? 260 : 180) : 96;
+  const bottomSafeArea = isCompactViewport ? (hasVariables ? 320 : 220) : 96;
   const maxX = window.innerWidth - estimatedAnswerWidth - 16;
   const maxY = window.innerHeight - bottomSafeArea;
   const blockers = existingResults.map(estimateResultRect);
@@ -575,8 +575,8 @@ export default function Home() {
   const statusMessage = notice || calculator.error;
   const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
   const statusPosition = calculator.hasVariables
-    ? "bottom-[calc(env(safe-area-inset-bottom)+13rem)] sm:bottom-4"
-    : "bottom-[calc(env(safe-area-inset-bottom)+7.5rem)] sm:bottom-4";
+    ? "bottom-[calc(env(safe-area-inset-bottom)+16rem)] xl:bottom-4"
+    : "bottom-[calc(env(safe-area-inset-bottom)+10rem)] xl:bottom-4";
   const isEmpty = !drawing.hasInk && calculator.results.length === 0;
 
   return (

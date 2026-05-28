@@ -1,5 +1,17 @@
 # Devlog
 
+## 2026-05-28 - Fix responsive toolbar overlap
+
+### Changed
+- Moved the mobile stroke-width control onto its own row so it no longer overlaps Undo/Redo on narrow screens.
+- Kept the bottom toolbar layout through tablet and narrow desktop widths to avoid colliding with the page strip.
+- Repositioned the wide desktop toolbar to start after the page strip instead of centering over it.
+- Raised mobile status and variable panels so they clear the taller bottom controls.
+
+### Verification
+- Ran frontend lint.
+- Verified 390px, 450px, 640px, 768px, 1024px, 1180px, 1280px, and 1365px layouts in the in-app browser with no control overlap.
+
 ## 2026-05-28 - Add advanced notebook controls
 
 ### Changed
