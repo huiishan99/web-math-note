@@ -1,4 +1,5 @@
 export type VariableValue = string | number | boolean | null;
+export type SolverMode = "quick" | "explain";
 
 export interface Position {
   x: number;

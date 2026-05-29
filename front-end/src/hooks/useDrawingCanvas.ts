@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 
-import { exportCanvasAsPng, getInkBounds } from "@/lib/canvas";
-import type { InkBounds } from "@/lib/canvas";
+import { exportCanvasAsPng, exportCanvasRegionAsPng, getInkBounds, getInkBoundsInRect } from "@/lib/canvas";
+import type { CanvasRect, InkBounds } from "@/lib/canvas";
 
 interface CanvasPayload {
   image: string;
   bounds: InkBounds;
+}
+
+interface CanvasRegionPayload extends CanvasPayload {
+  rect: CanvasRect;
 }
 
 export interface CanvasSnapshot {
@@ -124,6 +128,40 @@ export function useDrawingCanvas() {
     };
   }, []);
 
+  const getCanvasRectFromScreenRect = useCallback((rect: CanvasRect): CanvasRect | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return null;
+    }
+
+    const canvasBounds = canvas.getBoundingClientRect();
+    const x = ((rect.x - canvasBounds.left) / canvasBounds.width) * canvas.width;
+    const y = ((rect.y - canvasBounds.top) / canvasBounds.height) * canvas.height;
+    const width = (rect.width / canvasBounds.width) * canvas.width;
+    const height = (rect.height / canvasBounds.height) * canvas.height;
+
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { x, y, width, height };
+  }, []);
+
+  const getScreenRectFromCanvasRect = useCallback((rect: CanvasRect): CanvasRect | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return null;
+    }
+
+    const canvasBounds = canvas.getBoundingClientRect();
+    return {
+      x: canvasBounds.left + (rect.x / canvas.width) * canvasBounds.width,
+      y: canvasBounds.top + (rect.y / canvas.height) * canvasBounds.height,
+      width: (rect.width / canvas.width) * canvasBounds.width,
+      height: (rect.height / canvas.height) * canvasBounds.height,
+    };
+  }, []);
+
   const saveSnapshot = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -234,6 +272,58 @@ export function useDrawingCanvas() {
     markCanvasChanged();
   }, [markCanvasChanged]);
 
+  const deleteCanvasRegion = useCallback((screenRect: CanvasRect) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const canvasRect = getCanvasRectFromScreenRect(screenRect);
+    if (!canvas || !ctx || !canvasRect) {
+      return false;
+    }
+
+    const padding = Math.max(6, strokeWidth * 3);
+    ctx.clearRect(
+      canvasRect.x - padding,
+      canvasRect.y - padding,
+      canvasRect.width + padding * 2,
+      canvasRect.height + padding * 2,
+    );
+    ctx.globalCompositeOperation = "source-over";
+    markCanvasChanged();
+    return true;
+  }, [getCanvasRectFromScreenRect, markCanvasChanged, strokeWidth]);
+
+  const moveCanvasRegion = useCallback((fromScreenRect: CanvasRect, toScreenRect: CanvasRect) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const fromCanvasRect = getCanvasRectFromScreenRect(fromScreenRect);
+    const toCanvasRect = getCanvasRectFromScreenRect(toScreenRect);
+    if (!canvas || !ctx || !fromCanvasRect || !toCanvasRect) {
+      return false;
+    }
+
+    const padding = Math.max(6, strokeWidth * 3);
+    const sourceX = Math.max(0, Math.floor(fromCanvasRect.x - padding));
+    const sourceY = Math.max(0, Math.floor(fromCanvasRect.y - padding));
+    const sourceMaxX = Math.min(canvas.width, Math.ceil(fromCanvasRect.x + fromCanvasRect.width + padding));
+    const sourceMaxY = Math.min(canvas.height, Math.ceil(fromCanvasRect.y + fromCanvasRect.height + padding));
+    const sourceWidth = sourceMaxX - sourceX;
+    const sourceHeight = sourceMaxY - sourceY;
+
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      return false;
+    }
+
+    const imageData = ctx.getImageData(sourceX, sourceY, sourceWidth, sourceHeight);
+    const targetX = Math.round(toCanvasRect.x - (fromCanvasRect.x - sourceX));
+    const targetY = Math.round(toCanvasRect.y - (fromCanvasRect.y - sourceY));
+
+    ctx.clearRect(sourceX, sourceY, sourceWidth, sourceHeight);
+    ctx.putImageData(imageData, targetX, targetY);
+    ctx.globalCompositeOperation = "source-over";
+    markCanvasChanged();
+    return true;
+  }, [getCanvasRectFromScreenRect, markCanvasChanged, strokeWidth]);
+
   const resetCanvas = useCallback(() => {
     clearCanvas();
     historyRef.current = [];
@@ -341,6 +431,61 @@ export function useDrawingCanvas() {
     };
   }, []);
 
+  const getCanvasSelectionRect = useCallback((screenRect: CanvasRect): CanvasRect | null => {
+    const canvas = canvasRef.current;
+    const canvasRect = getCanvasRectFromScreenRect(screenRect);
+    if (!canvas || !canvasRect) {
+      return null;
+    }
+
+    const bounds = getInkBoundsInRect(canvas, canvasRect);
+    if (!bounds) {
+      return null;
+    }
+
+    const padding = Math.max(12, strokeWidth * 4);
+    const paddedCanvasRect = {
+      x: Math.max(0, bounds.minX - padding),
+      y: Math.max(0, bounds.minY - padding),
+      width: Math.min(canvas.width, bounds.maxX + padding) - Math.max(0, bounds.minX - padding),
+      height: Math.min(canvas.height, bounds.maxY + padding) - Math.max(0, bounds.minY - padding),
+    };
+
+    return getScreenRectFromCanvasRect(paddedCanvasRect);
+  }, [getCanvasRectFromScreenRect, getScreenRectFromCanvasRect, strokeWidth]);
+
+  const getCanvasRegionPayload = useCallback((screenRect: CanvasRect): CanvasRegionPayload | null => {
+    const canvas = canvasRef.current;
+    const canvasRect = getCanvasRectFromScreenRect(screenRect);
+    if (!canvas || !canvasRect) {
+      return null;
+    }
+
+    const bounds = getInkBoundsInRect(canvas, canvasRect);
+    if (!bounds) {
+      return null;
+    }
+
+    const padding = Math.max(12, strokeWidth * 4);
+    const regionRect = {
+      x: Math.max(0, bounds.minX - padding),
+      y: Math.max(0, bounds.minY - padding),
+      width: Math.min(canvas.width, bounds.maxX + padding) - Math.max(0, bounds.minX - padding),
+      height: Math.min(canvas.height, bounds.maxY + padding) - Math.max(0, bounds.minY - padding),
+    };
+    const image = exportCanvasRegionAsPng(canvas, regionRect);
+
+    if (!image) {
+      return null;
+    }
+
+    return {
+      image,
+      bounds,
+      rect: regionRect,
+    };
+  }, [getCanvasRectFromScreenRect, strokeWidth]);
+
   return {
     canvasRef,
     color,
@@ -359,7 +504,11 @@ export function useDrawingCanvas() {
     clearCanvas,
     resetCanvas,
     undo,
+    deleteCanvasRegion,
+    moveCanvasRegion,
     getCanvasPayload,
+    getCanvasRegionPayload,
+    getCanvasSelectionRect,
     getCanvasSnapshot,
     getCanvasThumbnail,
     loadCanvasSnapshot,

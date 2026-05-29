@@ -2,6 +2,7 @@ import { ColorSwatch, Group } from "@mantine/core";
 import {
   Download,
   Eraser,
+  ListTree,
   type LucideIcon,
   LoaderCircle,
   MousePointer2,
@@ -10,16 +11,19 @@ import {
   RotateCcw,
   Sparkles,
   Undo2,
+  Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SWATCHES } from "@/constants";
 import type { DrawingTool } from "@/hooks/useDrawingCanvas";
 import { cn } from "@/lib/utils";
+import type { SolverMode } from "@/types/calculator";
 
 interface ToolbarProps {
   color: string;
   tool: DrawingTool;
+  solutionMode: SolverMode;
   strokeWidth: number;
   canUndo: boolean;
   canRedo: boolean;
@@ -27,6 +31,7 @@ interface ToolbarProps {
   isLoading: boolean;
   onColorChange: (color: string) => void;
   onToolChange: (tool: DrawingTool) => void;
+  onSolutionModeChange: (mode: SolverMode) => void;
   onStrokeWidthChange: (width: number) => void;
   onRun: () => void;
   onExport: () => void;
@@ -41,9 +46,15 @@ const TOOL_OPTIONS: Array<{ value: DrawingTool; label: string; icon: LucideIcon 
   { value: "select", label: "Select", icon: MousePointer2 },
 ];
 
+const SOLVER_MODE_OPTIONS: Array<{ value: SolverMode; label: string; icon: LucideIcon }> = [
+  { value: "quick", label: "Quick answer", icon: Zap },
+  { value: "explain", label: "Explain answer", icon: ListTree },
+];
+
 export function Toolbar({
   color,
   tool,
+  solutionMode,
   strokeWidth,
   canUndo,
   canRedo,
@@ -51,6 +62,7 @@ export function Toolbar({
   isLoading,
   onColorChange,
   onToolChange,
+  onSolutionModeChange,
   onStrokeWidthChange,
   onRun,
   onExport,
@@ -111,6 +123,35 @@ export function Toolbar({
         }}
       />
     </label>
+  );
+
+  const renderModePanel = () => (
+    <div className={cn(panelClass, "gap-1 p-1")}>
+      {SOLVER_MODE_OPTIONS.map((option) => {
+        const Icon = option.icon;
+        const isActive = solutionMode === option.value;
+
+        return (
+          <Button
+            key={option.value}
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              toolButtonClass,
+              isActive && "bg-white/[0.16] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]",
+            )}
+            onClick={() => onSolutionModeChange(option.value)}
+            aria-label={option.label}
+            aria-pressed={isActive}
+            title={option.label}
+          >
+            <Icon />
+            <span className="sr-only">{option.label}</span>
+          </Button>
+        );
+      })}
+    </div>
   );
 
   const renderActionPanel = () => (
@@ -213,8 +254,9 @@ export function Toolbar({
   return (
     <>
       <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+4rem)] left-3 right-3 z-30 text-white xl:hidden">
-        <div className="mb-2 flex justify-center">
+        <div className="mb-2 flex justify-center gap-2">
           {renderWidthControl()}
+          {renderModePanel()}
         </div>
         <div className="flex items-center justify-between gap-2">
           {renderToolPanel()}
@@ -224,9 +266,10 @@ export function Toolbar({
       <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 right-3 z-30 text-white xl:hidden">
         {renderColorPanel()}
       </div>
-      <div className="pointer-events-none fixed left-[15.5rem] right-4 top-4 z-30 hidden items-center gap-2 overflow-x-auto text-white [-ms-overflow-style:none] [scrollbar-width:none] xl:flex [&::-webkit-scrollbar]:hidden">
+      <div className="pointer-events-none fixed left-[23rem] right-4 top-4 z-30 hidden items-center gap-2 overflow-x-auto text-white [-ms-overflow-style:none] [scrollbar-width:none] xl:flex [&::-webkit-scrollbar]:hidden">
         {renderToolPanel()}
         {renderWidthControl()}
+        {renderModePanel()}
         {renderActionPanel()}
         {renderColorPanel()}
       </div>

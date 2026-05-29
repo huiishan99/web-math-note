@@ -1,5 +1,21 @@
 # Devlog
 
+## 2026-05-30 - Add advanced Math Notes workflows
+
+### Changed
+- Added select-mode ink region editing: marquee-select handwritten ink, drag it, delete it, or solve only the selected region.
+- Added Quick and Explain solver modes and pass the mode through to the Gemini prompt.
+- Added active-page management controls for rename, delete, and moving pages left or right.
+- Added whole-notebook PDF export alongside the existing JSON notebook export.
+- Added canvas region export helpers and PDF rendering utilities for saved notebook pages.
+
+### Verification
+- Ran frontend lint and production build.
+- Ran backend Python compile checks on project source files.
+- Verified ink selection, drag, and delete behavior in the in-app browser.
+- Verified page/PDF/mode controls are present and no console errors are reported.
+- Verified 390px, 450px, 640px, 768px, 1024px, 1180px, 1280px, and 1365px layouts with no control overlap.
+
 ## 2026-05-28 - Fix responsive toolbar overlap
 
 ### Changed

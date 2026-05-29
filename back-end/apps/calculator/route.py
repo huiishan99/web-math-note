@@ -33,7 +33,7 @@ async def run(data: CalculateRequest):
         raise HTTPException(status_code=400, detail="Invalid image payload.") from exc
 
     try:
-        responses = analyze_image(image, dict_of_vars=data.dict_of_vars)
+        responses = analyze_image(image, dict_of_vars=data.dict_of_vars, mode=data.mode)
     except SolverConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except SolverProviderError as exc:

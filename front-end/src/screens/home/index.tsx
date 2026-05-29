@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { Sparkles } from "lucide-react";
+import { Move, Sparkles, Trash2 } from "lucide-react";
 
 import { CanvasBoard } from "@/components/math-board/CanvasBoard";
 import { PageStrip } from "@/components/math-board/PageStrip";
 import { ResultLayer } from "@/components/math-board/ResultLayer";
 import { Toolbar } from "@/components/math-board/Toolbar";
 import { VariablePanel } from "@/components/math-board/VariablePanel";
+import { Button } from "@/components/ui/button";
 import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas, type CanvasSnapshot } from "@/hooks/useDrawingCanvas";
-import { exportBoardAsPng, getExportFilename } from "@/lib/export-board";
+import { exportBoardAsPng, exportNotebookAsPdf, getExportFilename } from "@/lib/export-board";
 import type { InkBounds } from "@/lib/canvas";
-import type { CalculationItem, Position, VariableMap } from "@/types/calculator";
+import type { CalculationItem, Position, SolverMode, VariableMap } from "@/types/calculator";
 
 interface Rect {
   x: number;
@@ -197,7 +198,11 @@ export default function Home() {
   const [, setHistoryVersion] = useState(0);
   const [eraserCursor, setEraserCursor] = useState<Position | null>(null);
   const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
+  const [selectedInkRect, setSelectedInkRect] = useState<Rect | null>(null);
+  const [solutionMode, setSolutionMode] = useState<SolverMode>("quick");
   const selectionStartRef = useRef<Position | null>(null);
+  const inkMoveStartRef = useRef<Position | null>(null);
+  const inkMoveBaseRectRef = useRef<Rect | null>(null);
   const isRestoringPageRef = useRef(false);
   const restoreTokenRef = useRef(0);
   const undoStackRef = useRef<StoredNotebook[]>([]);
@@ -289,6 +294,7 @@ export default function Home() {
     isRestoringPageRef.current = true;
     replaceState(page.results, page.variables);
     setSelectedResultId(null);
+    setSelectedInkRect(null);
 
     loadCanvasSnapshot(page.ink).finally(() => {
       window.setTimeout(() => {
@@ -327,9 +333,11 @@ export default function Home() {
   }, [results, selectedResultId]);
 
   const handleRun = async () => {
-    const payload = drawing.getCanvasPayload();
+    const payload = selectedInkRect
+      ? drawing.getCanvasRegionPayload(selectedInkRect)
+      : drawing.getCanvasPayload();
     if (!payload) {
-      setNotice("Write something on the board first.");
+      setNotice(selectedInkRect ? "Select some ink before solving." : "Write something on the board first.");
       calculator.setError(null);
       return;
     }
@@ -339,6 +347,7 @@ export default function Home() {
     await calculator.calculate(
       payload.image,
       getAnswerPosition(payload.bounds, calculator.hasVariables, calculator.results),
+      solutionMode,
     );
   };
 
@@ -347,6 +356,7 @@ export default function Home() {
     drawing.resetCanvas();
     calculator.clearAll();
     setSelectedResultId(null);
+    setSelectedInkRect(null);
     setNotice(null);
   };
 
@@ -354,11 +364,74 @@ export default function Home() {
     pushHistory();
     setNotebook((currentNotebook) => {
       const nextPage = createPage(currentNotebook.pages.length + 1);
+      setSelectedInkRect(null);
       return {
         activePageId: nextPage.id,
         pages: [...currentNotebook.pages, nextPage],
       };
     });
+  };
+
+  const handleRenamePage = (id: string, title: string) => {
+    pushHistory();
+    setNotebook((currentNotebook) => ({
+      ...currentNotebook,
+      pages: currentNotebook.pages.map((page) => (
+        page.id === id ? { ...page, title, updatedAt: Date.now() } : page
+      )),
+    }));
+    setNotice("Page renamed.");
+  };
+
+  const handleDeletePage = (id: string) => {
+    if (notebook.pages.length <= 1) {
+      setNotice("Keep at least one page.");
+      return;
+    }
+
+    pushHistory();
+    setNotebook((currentNotebook) => {
+      const deletedIndex = currentNotebook.pages.findIndex((page) => page.id === id);
+      const nextPages = currentNotebook.pages.filter((page) => page.id !== id);
+      const nextActivePage = currentNotebook.activePageId === id
+        ? nextPages[Math.max(0, deletedIndex - 1)] ?? nextPages[0]
+        : nextPages.find((page) => page.id === currentNotebook.activePageId) ?? nextPages[0];
+
+      return {
+        activePageId: nextActivePage.id,
+        pages: nextPages,
+      };
+    });
+    setSelectedInkRect(null);
+    setSelectedResultId(null);
+    setNotice("Page deleted.");
+  };
+
+  const handleMovePage = (id: string, direction: -1 | 1) => {
+    const previewIndex = notebook.pages.findIndex((page) => page.id === id);
+    const previewNextIndex = previewIndex + direction;
+    if (previewIndex < 0 || previewNextIndex < 0 || previewNextIndex >= notebook.pages.length) {
+      return;
+    }
+
+    pushHistory();
+    setNotebook((currentNotebook) => {
+      const currentIndex = currentNotebook.pages.findIndex((page) => page.id === id);
+      const nextIndex = currentIndex + direction;
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentNotebook.pages.length) {
+        return currentNotebook;
+      }
+
+      const pages = [...currentNotebook.pages];
+      const page = pages[currentIndex];
+      pages.splice(currentIndex, 1);
+      pages.splice(nextIndex, 0, page);
+      return {
+        ...currentNotebook,
+        pages,
+      };
+    });
+    setNotice("Page moved.");
   };
 
   const handleSelectPage = (id: string) => {
@@ -367,6 +440,7 @@ export default function Home() {
     }
 
     pushHistory();
+    setSelectedInkRect(null);
     setNotebook((currentNotebook) => ({ ...currentNotebook, activePageId: id }));
   };
 
@@ -389,6 +463,18 @@ export default function Home() {
     setSelectedResultId(null);
     setNotice("Result removed.");
   }, [calculator, pushHistory]);
+
+  const handleDeleteInkSelection = useCallback(() => {
+    if (!selectedInkRect) {
+      return;
+    }
+
+    pushHistory();
+    if (drawing.deleteCanvasRegion(selectedInkRect)) {
+      setSelectedInkRect(null);
+      setNotice("Ink selection removed.");
+    }
+  }, [drawing, pushHistory, selectedInkRect]);
 
   const handleMoveResult = (id: string, position: Position) => {
     pushHistory();
@@ -423,6 +509,22 @@ export default function Home() {
     link.click();
     URL.revokeObjectURL(link.href);
     setNotice("Exported notebook.");
+  };
+
+  const handleExportNotebookPdf = async () => {
+    const snapshot = createCurrentNotebookSnapshot();
+    const pdf = await exportNotebookAsPdf(snapshot.pages.map((page) => ({
+      title: page.title,
+      ink: page.ink,
+      results: page.results,
+    })));
+    const link = document.createElement("a");
+    const objectUrl = URL.createObjectURL(pdf);
+    link.href = objectUrl;
+    link.download = "web-math-note.pdf";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    setNotice("Exported PDF.");
   };
 
   const handleImportNotebook = async (file: File) => {
@@ -463,6 +565,7 @@ export default function Home() {
   const handleCanvasPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (drawing.tool === "select") {
       setSelectedResultId(null);
+      setSelectedInkRect(null);
       selectionStartRef.current = { x: event.clientX, y: event.clientY };
       setSelectionRect({
         x: event.clientX,
@@ -508,7 +611,15 @@ export default function Home() {
         const selectedResult = [...calculator.results].reverse().find((result) => (
           rectsIntersect(rect, estimateResultRect(result))
         ));
-        setSelectedResultId(selectedResult?.id ?? null);
+        if (selectedResult) {
+          setSelectedResultId(selectedResult.id);
+          setSelectedInkRect(null);
+          return;
+        }
+
+        const inkRect = drawing.getCanvasSelectionRect(rect);
+        setSelectedInkRect(inkRect);
+        setNotice(inkRect ? "Ink selected." : null);
       }
       return;
     }
@@ -521,6 +632,56 @@ export default function Home() {
     selectionStartRef.current = null;
     setSelectionRect(null);
     drawing.stopDrawing(event);
+  };
+
+  const handleInkSelectionPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!selectedInkRect) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    inkMoveStartRef.current = { x: event.clientX, y: event.clientY };
+    inkMoveBaseRectRef.current = selectedInkRect;
+  };
+
+  const handleInkSelectionPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!inkMoveStartRef.current || !inkMoveBaseRectRef.current) {
+      return;
+    }
+
+    const deltaX = event.clientX - inkMoveStartRef.current.x;
+    const deltaY = event.clientY - inkMoveStartRef.current.y;
+    setSelectedInkRect({
+      ...inkMoveBaseRectRef.current,
+      x: inkMoveBaseRectRef.current.x + deltaX,
+      y: inkMoveBaseRectRef.current.y + deltaY,
+    });
+  };
+
+  const handleInkSelectionPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const baseRect = inkMoveBaseRectRef.current;
+    const nextRect = selectedInkRect;
+    inkMoveStartRef.current = null;
+    inkMoveBaseRectRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (!baseRect || !nextRect) {
+      return;
+    }
+
+    const moved = Math.abs(baseRect.x - nextRect.x) > 2 || Math.abs(baseRect.y - nextRect.y) > 2;
+    if (!moved) {
+      return;
+    }
+
+    pushHistory();
+    drawing.moveCanvasRegion(baseRect, nextRect);
+    setNotice("Ink selection moved.");
   };
 
   useEffect(() => {
@@ -554,8 +715,15 @@ export default function Home() {
         return;
       }
 
+      if ((event.key === "Backspace" || event.key === "Delete") && selectedInkRect) {
+        event.preventDefault();
+        handleDeleteInkSelection();
+        return;
+      }
+
       if (event.key === "Escape") {
         setSelectedResultId(null);
+        setSelectedInkRect(null);
         return;
       }
 
@@ -570,7 +738,16 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [drawing, handleDeleteResult, handleExport, handleRedo, handleUndo, selectedResultId]);
+  }, [
+    drawing,
+    handleDeleteInkSelection,
+    handleDeleteResult,
+    handleExport,
+    handleRedo,
+    handleUndo,
+    selectedInkRect,
+    selectedResultId,
+  ]);
 
   const statusMessage = notice || calculator.error;
   const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
@@ -617,12 +794,79 @@ export default function Home() {
           }}
         />
       )}
+      {selectedInkRect && (
+        <div
+          className="pointer-events-auto fixed z-[25] cursor-move rounded-md border border-white/60 bg-white/[0.05] shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
+          style={{
+            height: selectedInkRect.height,
+            left: selectedInkRect.x,
+            top: selectedInkRect.y,
+            width: selectedInkRect.width,
+          }}
+          onPointerDown={handleInkSelectionPointerDown}
+          onPointerMove={handleInkSelectionPointerMove}
+          onPointerUp={handleInkSelectionPointerUp}
+          onPointerCancel={handleInkSelectionPointerUp}
+          title="Drag selected ink"
+        >
+          <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="!h-7 !w-7 text-white/70 hover:bg-white/10 hover:text-white"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleRun();
+              }}
+              aria-label="Solve selected ink"
+              title="Solve selected ink"
+            >
+              <Sparkles />
+              <span className="sr-only">Solve selected ink</span>
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="!h-7 !w-7 text-white/65 hover:bg-white/10 hover:text-white"
+              onPointerDown={(event) => event.stopPropagation()}
+              aria-label="Move selected ink"
+              title="Drag selected ink"
+            >
+              <Move />
+              <span className="sr-only">Move selected ink</span>
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="!h-7 !w-7 text-red-100/80 hover:bg-red-400/15 hover:text-red-50"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDeleteInkSelection();
+              }}
+              aria-label="Delete selected ink"
+              title="Delete selected ink"
+            >
+              <Trash2 />
+              <span className="sr-only">Delete selected ink</span>
+            </Button>
+          </div>
+        </div>
+      )}
       <PageStrip
         pages={notebook.pages}
         activePageId={notebook.activePageId}
         onAddPage={handleAddPage}
+        onDeletePage={handleDeletePage}
         onExportNotebook={handleExportNotebook}
+        onExportPdf={handleExportNotebookPdf}
         onImportNotebook={handleImportNotebook}
+        onMovePage={handleMovePage}
+        onRenamePage={handleRenamePage}
         onSelectPage={handleSelectPage}
       />
       {isEmpty && (
@@ -646,6 +890,7 @@ export default function Home() {
       <Toolbar
         color={drawing.color}
         tool={drawing.tool}
+        solutionMode={solutionMode}
         strokeWidth={drawing.strokeWidth}
         canUndo={canUndo}
         canRedo={canRedo}
@@ -653,6 +898,7 @@ export default function Home() {
         isLoading={calculator.isLoading}
         onColorChange={drawing.setColor}
         onToolChange={drawing.setTool}
+        onSolutionModeChange={setSolutionMode}
         onStrokeWidthChange={drawing.setStrokeWidth}
         onRun={handleRun}
         onExport={handleExport}

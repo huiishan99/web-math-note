@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class CalculateRequest(BaseModel):
     image: str
     dict_of_vars: dict[str, Any] = Field(default_factory=dict)
+    mode: str = "quick"
 
 
 class CalculationItem(BaseModel):

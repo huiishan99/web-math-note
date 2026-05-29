@@ -35,10 +35,10 @@ class VisionSolverService:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(model_name=model_name)
 
-    def analyze_image(self, img: Image.Image, dict_of_vars: dict) -> list[CalculationItem]:
+    def analyze_image(self, img: Image.Image, dict_of_vars: dict, mode: str = "quick") -> list[CalculationItem]:
         try:
             response = self.model.generate_content(
-                [build_solver_prompt(dict_of_vars), img],
+                [build_solver_prompt(dict_of_vars, mode), img],
                 generation_config={
                     "response_mime_type": "application/json",
                     "temperature": 0,
@@ -58,5 +58,5 @@ class VisionSolverService:
         return parse_solver_response(raw_text)
 
 
-def analyze_image(img: Image.Image, dict_of_vars: dict) -> list[CalculationItem]:
-    return VisionSolverService().analyze_image(img, dict_of_vars)
+def analyze_image(img: Image.Image, dict_of_vars: dict, mode: str = "quick") -> list[CalculationItem]:
+    return VisionSolverService().analyze_image(img, dict_of_vars, mode)

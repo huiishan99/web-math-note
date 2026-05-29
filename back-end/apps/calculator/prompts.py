@@ -2,12 +2,22 @@ import json
 from typing import Any
 
 
-def build_solver_prompt(dict_of_vars: dict[str, Any]) -> str:
+def build_solver_prompt(dict_of_vars: dict[str, Any], mode: str = "quick") -> str:
     dict_of_vars_str = json.dumps(dict_of_vars, ensure_ascii=False)
+    normalized_mode = "explain" if mode == "explain" else "quick"
+    mode_rules = (
+        "The user selected Explain mode. Include short solving steps when they help, "
+        "even for moderately simple algebra. Keep result as the final answer only. "
+        "Use at most 5 concise steps."
+        if normalized_mode == "explain"
+        else "The user selected Quick mode. Behave like a calculator. Prefer a single final answer. "
+        "Use steps only when the problem would be ambiguous without them, and keep them extremely short."
+    )
 
     return (
         "You are reading a user-drawn math whiteboard image. Solve the expression, "
         "equation, graph problem, or visual word problem in the image.\n\n"
+        f"{mode_rules}\n\n"
         "Behave like a calculator by default. Prefer the shortest correct answer. "
         "For simple arithmetic such as 1 + 1 = ? or 2 + 2, return only the final "
         "answer in result and leave steps as an empty list.\n\n"
@@ -42,9 +52,10 @@ def build_solver_prompt(dict_of_vars: dict[str, Any]) -> str:
         '{"items":[{"expr":"x","result":"4","assign":true,"steps":[]}]}.\n\n'
         "Rules for concise output:\n"
         "- result must contain only the final answer, never an explanatory sentence.\n"
-        "- steps must be [] for simple arithmetic, variable assignments, and direct answers.\n"
-        "- Include steps only for non-trivial algebra, geometry, or graphical word problems.\n"
-        "- If steps are needed, include at most 3 short fragments, not a full explanation.\n"
+        "- In Quick mode, steps must be [] for simple arithmetic, variable assignments, and direct answers.\n"
+        "- In Explain mode, steps may show the reasoning but must remain concise.\n"
+        "- Include steps for non-trivial algebra, geometry, or graphical word problems.\n"
+        "- If steps are needed, include short fragments, not a full essay.\n"
         "- If the user writes = ?, omit the trailing = ? from expr.\n"
         "Set assign to true only when the item stores or solves a variable value. "
         "Keep all values concise and display-ready."

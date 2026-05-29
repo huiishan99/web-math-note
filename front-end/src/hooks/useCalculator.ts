@@ -5,6 +5,7 @@ import type {
   CalculationItem,
   CalculatorApiResponse,
   Position,
+  SolverMode,
   VariableMap,
 } from "@/types/calculator";
 
@@ -35,7 +36,7 @@ export function useCalculator() {
 
   const hasVariables = useMemo(() => Object.keys(variables).length > 0, [variables]);
 
-  const calculate = useCallback(async (image: string, position: Position) => {
+  const calculate = useCallback(async (image: string, position: Position, mode: SolverMode = "quick") => {
     setIsLoading(true);
     setError(null);
 
@@ -43,6 +44,7 @@ export function useCalculator() {
       const response = await axios.post<CalculatorApiResponse>(`${API_URL}/calculate`, {
         image,
         dict_of_vars: variables,
+        mode,
       });
 
       const nextResults = response.data.data.map((item, index) => ({
