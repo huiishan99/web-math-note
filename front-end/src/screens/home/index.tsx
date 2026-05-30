@@ -8,101 +8,17 @@ import { Toolbar } from "@/components/math-board/Toolbar";
 import { VariablePanel } from "@/components/math-board/VariablePanel";
 import { Button } from "@/components/ui/button";
 import { useCalculator } from "@/hooks/useCalculator";
-import { useDrawingCanvas, type CanvasSnapshot } from "@/hooks/useDrawingCanvas";
+import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
+import { useNotebook } from "@/hooks/useNotebook";
 import { exportBoardAsPng, exportNotebookAsPdf, getExportFilename } from "@/lib/export-board";
 import type { InkBounds } from "@/lib/canvas";
-import type { CalculationItem, Position, SolverMode, VariableMap } from "@/types/calculator";
+import type { CalculationItem, Position, SolverMode } from "@/types/calculator";
 
 interface Rect {
   x: number;
   y: number;
   width: number;
   height: number;
-}
-
-interface NotebookPage {
-  id: string;
-  title: string;
-  ink: CanvasSnapshot | null;
-  results: CalculationItem[];
-  thumbnail?: string | null;
-  variables: VariableMap;
-  updatedAt: number;
-}
-
-interface StoredNotebook {
-  activePageId: string;
-  pages: NotebookPage[];
-}
-
-const STORAGE_KEY = "web-math-note:notebook:v1";
-const HISTORY_LIMIT = 50;
-
-function createPage(index: number): NotebookPage {
-  return {
-    id: `page-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    title: `Page ${index}`,
-    ink: null,
-    results: [],
-    thumbnail: null,
-    variables: {},
-    updatedAt: Date.now(),
-  };
-}
-
-function createNotebook(): StoredNotebook {
-  const firstPage = createPage(1);
-  return {
-    activePageId: firstPage.id,
-    pages: [firstPage],
-  };
-}
-
-function normalizeNotebook(notebook: Partial<StoredNotebook> | null | undefined): StoredNotebook {
-  const pages = Array.isArray(notebook?.pages) ? notebook.pages : [];
-  if (pages.length === 0) {
-    return createNotebook();
-  }
-
-  const normalizedPages = pages.map((page, index) => ({
-    id: page.id || `page-${index + 1}`,
-    title: page.title || `Page ${index + 1}`,
-    ink: page.ink ?? null,
-    results: Array.isArray(page.results) ? page.results : [],
-    thumbnail: page.thumbnail ?? null,
-    variables: page.variables ?? {},
-    updatedAt: page.updatedAt ?? Date.now(),
-  }));
-
-  const activePageId = normalizedPages.some((page) => page.id === notebook?.activePageId)
-    ? String(notebook?.activePageId)
-    : normalizedPages[0].id;
-
-  return {
-    activePageId,
-    pages: normalizedPages,
-  };
-}
-
-function cloneNotebook(notebook: StoredNotebook): StoredNotebook {
-  return JSON.parse(JSON.stringify(notebook)) as StoredNotebook;
-}
-
-function loadStoredNotebook(): StoredNotebook {
-  if (typeof window === "undefined") {
-    return createNotebook();
-  }
-
-  try {
-    const storedNotebook = window.localStorage.getItem(STORAGE_KEY);
-    if (!storedNotebook) {
-      return createNotebook();
-    }
-
-    return normalizeNotebook(JSON.parse(storedNotebook) as StoredNotebook);
-  } catch {
-    return createNotebook();
-  }
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -191,11 +107,8 @@ function getAnswerPosition(bounds: InkBounds, hasVariables: boolean, existingRes
 export default function Home() {
   const drawing = useDrawingCanvas();
   const calculator = useCalculator();
-  const [notebook, setNotebook] = useState<StoredNotebook>(loadStoredNotebook);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
-  const [restoreRevision, setRestoreRevision] = useState(0);
-  const [, setHistoryVersion] = useState(0);
   const [eraserCursor, setEraserCursor] = useState<Position | null>(null);
   const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
   const [selectedInkRect, setSelectedInkRect] = useState<Rect | null>(null);
@@ -203,10 +116,6 @@ export default function Home() {
   const selectionStartRef = useRef<Position | null>(null);
   const inkMoveStartRef = useRef<Position | null>(null);
   const inkMoveBaseRectRef = useRef<Rect | null>(null);
-  const isRestoringPageRef = useRef(false);
-  const restoreTokenRef = useRef(0);
-  const undoStackRef = useRef<StoredNotebook[]>([]);
-  const redoStackRef = useRef<StoredNotebook[]>([]);
   const {
     canvasVersion,
     getCanvasThumbnail,
@@ -219,118 +128,43 @@ export default function Home() {
     results,
     variables,
   } = calculator;
-
-  const activePage = useMemo(
-    () => notebook.pages.find((page) => page.id === notebook.activePageId) ?? notebook.pages[0],
-    [notebook],
-  );
-  const fileName = useMemo(() => getExportFilename(activePage?.title ?? "math-note"), [activePage?.title]);
-  const activePageRef = useRef(activePage);
-  const canUndo = undoStackRef.current.length > 0;
-  const canRedo = redoStackRef.current.length > 0;
-
-  const createCurrentNotebookSnapshot = useCallback(() => cloneNotebook({
-    ...notebook,
-    pages: notebook.pages.map((page) => (
-      page.id === notebook.activePageId
-        ? {
-          ...page,
-          ink: getCanvasSnapshot(),
-          results,
-          thumbnail: getCanvasThumbnail(),
-          variables,
-          updatedAt: Date.now(),
-        }
-        : page
-    )),
-  }), [getCanvasSnapshot, getCanvasThumbnail, notebook, results, variables]);
-
-  const pushHistory = useCallback(() => {
-    if (isRestoringPageRef.current) {
-      return;
-    }
-
-    undoStackRef.current.push(createCurrentNotebookSnapshot());
-    if (undoStackRef.current.length > HISTORY_LIMIT) {
-      undoStackRef.current.shift();
-    }
-    redoStackRef.current = [];
-    setHistoryVersion((version) => version + 1);
-  }, [createCurrentNotebookSnapshot]);
-
-  const restoreNotebook = useCallback((nextNotebook: StoredNotebook) => {
-    isRestoringPageRef.current = true;
-    setNotebook(cloneNotebook(nextNotebook));
-    setRestoreRevision((revision) => revision + 1);
-  }, []);
-
-  const updateActivePage = useCallback((updates: Partial<NotebookPage>) => {
-    setNotebook((currentNotebook) => ({
-      ...currentNotebook,
-      pages: currentNotebook.pages.map((page) => (
-        page.id === currentNotebook.activePageId
-          ? { ...page, ...updates, updatedAt: Date.now() }
-          : page
-      )),
-    }));
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notebook));
-  }, [notebook]);
-
-  useEffect(() => {
-    activePageRef.current = activePage;
-  }, [activePage]);
-
-  useEffect(() => {
-    const page = activePageRef.current;
-    if (!isCanvasReady || !page) {
-      return;
-    }
-
-    const restoreToken = restoreTokenRef.current + 1;
-    restoreTokenRef.current = restoreToken;
-    isRestoringPageRef.current = true;
-    replaceState(page.results, page.variables);
-    setSelectedResultId(null);
-    setSelectedInkRect(null);
-
-    loadCanvasSnapshot(page.ink).finally(() => {
-      window.setTimeout(() => {
-        if (restoreTokenRef.current === restoreToken) {
-          isRestoringPageRef.current = false;
-        }
-      }, 0);
-    });
-  }, [notebook.activePageId, restoreRevision, isCanvasReady, loadCanvasSnapshot, replaceState]);
-
-  useEffect(() => {
-    if (!isCanvasReady || isRestoringPageRef.current) {
-      return;
-    }
-
-    updateActivePage({
-      ink: getCanvasSnapshot(),
-      results,
-      thumbnail: getCanvasThumbnail(),
-      variables,
-    });
-  }, [
+  const {
+    activePage,
+    addPage,
+    canRedo,
+    canUndo,
+    createCurrentNotebookSnapshot,
+    deletePage,
+    importNotebookFromText,
+    movePage,
+    notebook,
+    pushHistory,
+    redo,
+    renamePage,
+    selectPage,
+    undo,
+  } = useNotebook({
     canvasVersion,
-    getCanvasThumbnail,
     getCanvasSnapshot,
+    getCanvasThumbnail,
     isCanvasReady,
+    loadCanvasSnapshot,
+    replaceState,
     results,
-    updateActivePage,
     variables,
-  ]);
+  });
+  const fileName = useMemo(() => getExportFilename(activePage?.title ?? "math-note"), [activePage?.title]);
 
   useEffect(() => {
     if (selectedResultId && !results.some((result) => result.id === selectedResultId)) {
       setSelectedResultId(null);
     }
   }, [results, selectedResultId]);
+
+  useEffect(() => {
+    setSelectedResultId(null);
+    setSelectedInkRect(null);
+  }, [notebook.activePageId]);
 
   const handleRun = async () => {
     const payload = selectedInkRect
@@ -361,87 +195,36 @@ export default function Home() {
   };
 
   const handleAddPage = () => {
-    pushHistory();
-    setNotebook((currentNotebook) => {
-      const nextPage = createPage(currentNotebook.pages.length + 1);
-      setSelectedInkRect(null);
-      return {
-        activePageId: nextPage.id,
-        pages: [...currentNotebook.pages, nextPage],
-      };
-    });
+    addPage();
+    setSelectedInkRect(null);
   };
 
   const handleRenamePage = (id: string, title: string) => {
-    pushHistory();
-    setNotebook((currentNotebook) => ({
-      ...currentNotebook,
-      pages: currentNotebook.pages.map((page) => (
-        page.id === id ? { ...page, title, updatedAt: Date.now() } : page
-      )),
-    }));
+    renamePage(id, title);
     setNotice("Page renamed.");
   };
 
   const handleDeletePage = (id: string) => {
-    if (notebook.pages.length <= 1) {
+    if (!deletePage(id)) {
       setNotice("Keep at least one page.");
       return;
     }
 
-    pushHistory();
-    setNotebook((currentNotebook) => {
-      const deletedIndex = currentNotebook.pages.findIndex((page) => page.id === id);
-      const nextPages = currentNotebook.pages.filter((page) => page.id !== id);
-      const nextActivePage = currentNotebook.activePageId === id
-        ? nextPages[Math.max(0, deletedIndex - 1)] ?? nextPages[0]
-        : nextPages.find((page) => page.id === currentNotebook.activePageId) ?? nextPages[0];
-
-      return {
-        activePageId: nextActivePage.id,
-        pages: nextPages,
-      };
-    });
     setSelectedInkRect(null);
     setSelectedResultId(null);
     setNotice("Page deleted.");
   };
 
   const handleMovePage = (id: string, direction: -1 | 1) => {
-    const previewIndex = notebook.pages.findIndex((page) => page.id === id);
-    const previewNextIndex = previewIndex + direction;
-    if (previewIndex < 0 || previewNextIndex < 0 || previewNextIndex >= notebook.pages.length) {
-      return;
+    if (movePage(id, direction)) {
+      setNotice("Page moved.");
     }
-
-    pushHistory();
-    setNotebook((currentNotebook) => {
-      const currentIndex = currentNotebook.pages.findIndex((page) => page.id === id);
-      const nextIndex = currentIndex + direction;
-      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentNotebook.pages.length) {
-        return currentNotebook;
-      }
-
-      const pages = [...currentNotebook.pages];
-      const page = pages[currentIndex];
-      pages.splice(currentIndex, 1);
-      pages.splice(nextIndex, 0, page);
-      return {
-        ...currentNotebook,
-        pages,
-      };
-    });
-    setNotice("Page moved.");
   };
 
   const handleSelectPage = (id: string) => {
-    if (id === notebook.activePageId) {
-      return;
+    if (selectPage(id)) {
+      setSelectedInkRect(null);
     }
-
-    pushHistory();
-    setSelectedInkRect(null);
-    setNotebook((currentNotebook) => ({ ...currentNotebook, activePageId: id }));
   };
 
   const handleAcceptResult = (id: string) => {
@@ -529,9 +312,7 @@ export default function Home() {
 
   const handleImportNotebook = async (file: File) => {
     try {
-      const importedNotebook = normalizeNotebook(JSON.parse(await file.text()) as StoredNotebook);
-      pushHistory();
-      restoreNotebook(importedNotebook);
+      importNotebookFromText(await file.text());
       setNotice("Imported notebook.");
     } catch {
       setNotice("Could not import notebook.");
@@ -539,28 +320,16 @@ export default function Home() {
   };
 
   const handleUndo = useCallback(() => {
-    const previousNotebook = undoStackRef.current.pop();
-    if (!previousNotebook) {
-      return;
+    if (undo()) {
+      setNotice("Undone.");
     }
-
-    redoStackRef.current.push(createCurrentNotebookSnapshot());
-    restoreNotebook(previousNotebook);
-    setHistoryVersion((version) => version + 1);
-    setNotice("Undone.");
-  }, [createCurrentNotebookSnapshot, restoreNotebook]);
+  }, [undo]);
 
   const handleRedo = useCallback(() => {
-    const nextNotebook = redoStackRef.current.pop();
-    if (!nextNotebook) {
-      return;
+    if (redo()) {
+      setNotice("Redone.");
     }
-
-    undoStackRef.current.push(createCurrentNotebookSnapshot());
-    restoreNotebook(nextNotebook);
-    setHistoryVersion((version) => version + 1);
-    setNotice("Redone.");
-  }, [createCurrentNotebookSnapshot, restoreNotebook]);
+  }, [redo]);
 
   const handleCanvasPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (drawing.tool === "select") {

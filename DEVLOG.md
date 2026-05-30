@@ -12,6 +12,18 @@
 - Ran frontend lint.
 - Ran backend parser unit tests with the local backend virtual environment.
 
+## 2026-05-31 - Split notebook state from the home screen
+
+### Changed
+- Moved notebook creation, normalization, localStorage persistence, page operations, and undo/redo stacks into dedicated notebook utilities and `useNotebook`.
+- Reduced the home screen from a monolithic notebook state owner into a UI coordinator for canvas, results, and controls.
+- Added frontend unit coverage for notebook normalization, cloning, and storage round trips.
+
+### Verification
+- Ran frontend lint.
+- Ran frontend unit tests.
+- Ran frontend production build.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed

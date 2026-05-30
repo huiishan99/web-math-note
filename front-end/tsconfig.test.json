@@ -10,6 +10,7 @@
     "types": ["node"]
   },
   "include": [
+    "src/lib/notebook.ts",
     "src/lib/result-format.ts",
     "src/types/calculator.ts",
     "tests/**/*.ts"
