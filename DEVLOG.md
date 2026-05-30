@@ -1,5 +1,17 @@
 # Devlog
 
+## 2026-05-31 - Add lightweight test harnesses
+
+### Changed
+- Added a no-new-dependency frontend unit test path using TypeScript compilation plus Node's built-in test runner.
+- Added focused frontend coverage for result formatting and MathJax routing decisions.
+- Added backend `unittest` coverage for Gemini response parsing, fenced JSON, and unusable payload rejection.
+
+### Verification
+- Ran frontend unit tests.
+- Ran frontend lint.
+- Ran backend parser unit tests with the local backend virtual environment.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed

@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "noEmit": false,
+    "outDir": ".test-dist",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": [
+    "src/lib/result-format.ts",
+    "src/types/calculator.ts",
+    "tests/**/*.ts"
+  ]
+}
