@@ -74,6 +74,10 @@ export function useCalculator() {
           detail = responseDetail || "Gemini key is missing, invalid, or not allowed for this model.";
         } else if (status === 429) {
           detail = responseDetail || "Gemini quota or rate limit was reached.";
+        } else if (status === 413) {
+          detail = responseDetail || "The drawing is too large to send. Try solving a smaller selection.";
+        } else if (status === 422) {
+          detail = responseDetail || "The calculation request was not valid.";
         } else if (status && status >= 500) {
           detail = responseDetail || "Backend or Gemini returned a server error.";
         } else {

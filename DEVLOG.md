@@ -37,6 +37,20 @@
 - Ran frontend unit tests.
 - Ran frontend production build.
 
+## 2026-05-31 - Harden calculator API inputs
+
+### Changed
+- Replaced wildcard credentialed CORS defaults with explicit local frontend origins from `CORS_ORIGINS`.
+- Added strict solver mode validation, scalar-only variable values, image data URL validation, image byte limits, pixel limits, and solver timeout configuration.
+- Reused the Gemini solver service across requests instead of rebuilding it on every calculation.
+- Added backend route coverage for invalid image payloads, oversized images, solver mode validation, and valid solver calls without adding new test dependencies.
+- Improved frontend error copy for oversized and invalid calculation requests.
+
+### Verification
+- Ran backend unit tests with the local backend virtual environment.
+- Ran backend Python compile checks on project source files.
+- Ran frontend production build.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed

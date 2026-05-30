@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import logging
+
 from PIL import Image
 import google.generativeai as genai
 
 from apps.calculator.parser import SolverResponseError, parse_solver_response
 from apps.calculator.prompts import build_solver_prompt
-from constants import GEMINI_API_KEY, GEMINI_MODEL
+from constants import GEMINI_API_KEY, GEMINI_MODEL, SOLVER_TIMEOUT_SECONDS
 from schema import CalculationItem, SolverStatusResponse
+
+logger = logging.getLogger(__name__)
 
 
 class SolverConfigurationError(RuntimeError):
@@ -44,8 +49,10 @@ class VisionSolverService:
                     "temperature": 0,
                     "max_output_tokens": 1024,
                 },
+                request_options={"timeout": SOLVER_TIMEOUT_SECONDS},
             )
         except Exception as exc:
+            logger.exception("AI solver request failed")
             raise SolverProviderError(
                 "AI solver request failed. Check whether GEMINI_API_KEY is present, valid, and allowed to call this model."
             ) from exc
@@ -58,5 +65,10 @@ class VisionSolverService:
         return parse_solver_response(raw_text)
 
 
+@lru_cache(maxsize=1)
+def get_solver_service() -> VisionSolverService:
+    return VisionSolverService()
+
+
 def analyze_image(img: Image.Image, dict_of_vars: dict, mode: str = "quick") -> list[CalculationItem]:
-    return VisionSolverService().analyze_image(img, dict_of_vars, mode)
+    return get_solver_service().analyze_image(img, dict_of_vars, mode)
