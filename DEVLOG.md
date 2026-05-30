@@ -51,6 +51,23 @@
 - Ran backend Python compile checks on project source files.
 - Ran frontend production build.
 
+## 2026-05-31 - Clean project configuration and docs
+
+### Changed
+- Replaced the template frontend README with project setup notes and added a root README covering frontend, backend, environment variables, and checks.
+- Pinned backend top-level requirements to the currently verified local versions.
+- Removed the duplicate Mantine PostCSS config and unused PostCSS helper packages.
+- Removed tracked TypeScript build-info files and ignored future `*.tsbuildinfo` output.
+- Updated frontend lockfile audit fixes and Browserslist data; npm audit now reports zero vulnerabilities.
+
+### Verification
+- Ran frontend lint.
+- Ran frontend unit tests.
+- Ran frontend production build.
+- Ran frontend npm audit with `--audit-level=low`.
+- Ran backend unit tests with the local backend virtual environment.
+- Ran backend Python compile checks on project source files.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed
