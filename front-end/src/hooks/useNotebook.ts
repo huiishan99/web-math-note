@@ -36,6 +36,7 @@ export function useNotebook({
   variables,
 }: UseNotebookOptions) {
   const [notebook, setNotebook] = useState<StoredNotebook>(() => loadNotebookFromStorage());
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [restoreRevision, setRestoreRevision] = useState(0);
   const [, setHistoryVersion] = useState(0);
   const activePage = useMemo(
@@ -97,7 +98,16 @@ export function useNotebook({
   }, []);
 
   useEffect(() => {
-    saveNotebookToStorage(notebook);
+    const saveTimer = window.setTimeout(() => {
+      try {
+        saveNotebookToStorage(notebook);
+        setStorageError(null);
+      } catch {
+        setStorageError("Notebook autosave failed. Export a backup before closing this tab.");
+      }
+    }, 150);
+
+    return () => window.clearTimeout(saveTimer);
   }, [notebook]);
 
   useEffect(() => {
@@ -259,6 +269,7 @@ export function useNotebook({
     activePage,
     canUndo,
     canRedo,
+    storageError,
     createCurrentNotebookSnapshot,
     pushHistory,
     addPage,

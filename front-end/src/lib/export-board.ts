@@ -11,6 +11,10 @@ interface BoardSnapshot {
   dataUrl: string;
   width: number;
   height: number;
+  x?: number;
+  y?: number;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export interface PdfExportPage {
@@ -193,7 +197,13 @@ export async function exportSnapshotAsImage(
   if (snapshot?.dataUrl) {
     try {
       const image = await loadDataUrlImage(snapshot.dataUrl);
-      ctx.drawImage(image, 0, 0, exportedCanvas.width, exportedCanvas.height);
+      const scaleX = exportedCanvas.width / snapshot.width;
+      const scaleY = exportedCanvas.height / snapshot.height;
+      const targetX = (snapshot.x ?? 0) * scaleX;
+      const targetY = (snapshot.y ?? 0) * scaleY;
+      const targetWidth = (snapshot.imageWidth ?? snapshot.width) * scaleX;
+      const targetHeight = (snapshot.imageHeight ?? snapshot.height) * scaleY;
+      ctx.drawImage(image, targetX, targetY, targetWidth, targetHeight);
     } catch {
       // Keep the exported page background if the saved page image is unreadable.
     }

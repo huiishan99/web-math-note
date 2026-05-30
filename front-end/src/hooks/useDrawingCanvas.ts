@@ -17,6 +17,10 @@ export interface CanvasSnapshot {
   dataUrl: string;
   width: number;
   height: number;
+  x?: number;
+  y?: number;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export type DrawingTool = "pen" | "eraser" | "select";
@@ -40,6 +44,7 @@ function getMidpoint(a: Point, b: Point) {
 export function useDrawingCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
+  const inkBoundsRef = useRef<InkBounds | null>(null);
   const historyRef = useRef<ImageData[]>([]);
   const pointsRef = useRef<Point[]>([]);
   const [color, setColor] = useState("#ffffff");
@@ -73,7 +78,10 @@ export function useDrawingCanvas() {
 
   const refreshInkPresence = useCallback(() => {
     const canvas = canvasRef.current;
-    setHasInk(Boolean(canvas && getInkBounds(canvas)));
+    const bounds = canvas ? getInkBounds(canvas) : null;
+    inkBoundsRef.current = bounds;
+    setHasInk(Boolean(bounds));
+    return bounds;
   }, []);
 
   const markCanvasChanged = useCallback(() => {
@@ -347,20 +355,50 @@ export function useDrawingCanvas() {
 
   const getCanvasSnapshot = useCallback((): CanvasSnapshot | null => {
     const canvas = canvasRef.current;
-    if (!canvas || !getInkBounds(canvas)) {
+    const bounds = inkBoundsRef.current ?? (canvas ? getInkBounds(canvas) : null);
+    if (!canvas || !bounds) {
       return null;
     }
 
+    inkBoundsRef.current = bounds;
+    const padding = 16;
+    const x = Math.max(0, Math.floor(bounds.minX - padding));
+    const y = Math.max(0, Math.floor(bounds.minY - padding));
+    const maxX = Math.min(canvas.width, Math.ceil(bounds.maxX + padding));
+    const maxY = Math.min(canvas.height, Math.ceil(bounds.maxY + padding));
+    const imageWidth = Math.max(1, maxX - x);
+    const imageHeight = Math.max(1, maxY - y);
+    const snapshotCanvas = document.createElement("canvas");
+    snapshotCanvas.width = imageWidth;
+    snapshotCanvas.height = imageHeight;
+
+    snapshotCanvas.getContext("2d")?.drawImage(
+      canvas,
+      x,
+      y,
+      imageWidth,
+      imageHeight,
+      0,
+      0,
+      imageWidth,
+      imageHeight,
+    );
+
     return {
-      dataUrl: canvas.toDataURL("image/png"),
+      dataUrl: snapshotCanvas.toDataURL("image/png"),
       width: canvas.width,
       height: canvas.height,
+      x,
+      y,
+      imageWidth,
+      imageHeight,
     };
   }, []);
 
   const getCanvasThumbnail = useCallback((maxWidth = 96): string | null => {
     const canvas = canvasRef.current;
-    if (!canvas || !getInkBounds(canvas)) {
+    const bounds = inkBoundsRef.current ?? (canvas ? getInkBounds(canvas) : null);
+    if (!canvas || !bounds) {
       return null;
     }
 
@@ -403,7 +441,13 @@ export function useDrawingCanvas() {
     const image = new Image();
     image.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const scaleX = canvas.width / snapshot.width;
+      const scaleY = canvas.height / snapshot.height;
+      const targetX = (snapshot.x ?? 0) * scaleX;
+      const targetY = (snapshot.y ?? 0) * scaleY;
+      const targetWidth = (snapshot.imageWidth ?? snapshot.width) * scaleX;
+      const targetHeight = (snapshot.imageHeight ?? snapshot.height) * scaleY;
+      ctx.drawImage(image, targetX, targetY, targetWidth, targetHeight);
       markCanvasChanged();
       resolve();
     };
@@ -424,6 +468,7 @@ export function useDrawingCanvas() {
     if (!bounds) {
       return null;
     }
+    inkBoundsRef.current = bounds;
 
     return {
       image: exportCanvasAsPng(canvas),

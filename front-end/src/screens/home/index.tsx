@@ -142,6 +142,7 @@ export default function Home() {
     redo,
     renamePage,
     selectPage,
+    storageError,
     undo,
   } = useNotebook({
     canvasVersion,
@@ -290,7 +291,7 @@ export default function Home() {
     link.href = URL.createObjectURL(blob);
     link.download = "web-math-note.mathnote.json";
     link.click();
-    URL.revokeObjectURL(link.href);
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
     setNotice("Exported notebook.");
   };
 
@@ -518,8 +519,8 @@ export default function Home() {
     selectedResultId,
   ]);
 
-  const statusMessage = notice || calculator.error;
-  const statusTone = calculator.error ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
+  const statusMessage = notice || calculator.error || storageError;
+  const statusTone = calculator.error || storageError ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
   const statusPosition = calculator.hasVariables
     ? "bottom-[calc(env(safe-area-inset-bottom)+16rem)] xl:bottom-4"
     : "bottom-[calc(env(safe-area-inset-bottom)+10rem)] xl:bottom-4";

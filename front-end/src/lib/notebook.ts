@@ -4,6 +4,10 @@ export interface NotebookCanvasSnapshot {
   dataUrl: string;
   width: number;
   height: number;
+  x?: number;
+  y?: number;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export interface NotebookPage {

@@ -24,6 +24,19 @@
 - Ran frontend unit tests.
 - Ran frontend production build.
 
+## 2026-05-31 - Reduce notebook storage churn
+
+### Changed
+- Changed saved canvas snapshots to store only the padded ink region while preserving full-canvas placement metadata and legacy snapshot compatibility.
+- Cached ink bounds in the drawing hook to avoid repeated full-canvas scans during snapshot, thumbnail, and payload creation.
+- Debounced notebook autosaves and surfaced localStorage failures as an in-app status message.
+- Delayed JSON export object URL revocation so browser downloads have a chance to start reliably.
+
+### Verification
+- Ran frontend lint.
+- Ran frontend unit tests.
+- Ran frontend production build.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed
