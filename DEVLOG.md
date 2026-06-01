@@ -68,6 +68,17 @@
 - Ran backend unit tests with the local backend virtual environment.
 - Ran backend Python compile checks on project source files.
 
+## 2026-06-01 - Remove draggable StrictMode warning
+
+### Changed
+- Passed stable node refs into draggable result cards so React no longer falls back to deprecated `findDOMNode` in StrictMode.
+- Verified the fix during an in-app browser smoke test after solving a sample mark.
+
+### Verification
+- Ran frontend lint.
+- Ran frontend unit tests.
+- Ran frontend production build.
+
 ## 2026-05-30 - Add advanced Math Notes workflows
 
 ### Changed
