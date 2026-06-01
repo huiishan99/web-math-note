@@ -3,11 +3,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from apps.calculator.route import router as calculator_router
+from apps.calculator.service import close_solver_service
 from constants import CORS_ORIGINS, SERVER_URL, PORT, ENV
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
+    close_solver_service()
 
 app = FastAPI(lifespan=lifespan)
 

@@ -1,5 +1,24 @@
 # Devlog
 
+## 2026-06-01 - Migrate backend to Google Gen AI SDK
+
+### Changed
+- Created and verified a Python 3.12 backend virtual environment at `back-end/.venv-py312`.
+- Replaced the deprecated `google-generativeai` package with `google-genai`.
+- Migrated the Gemini solver to `genai.Client`, `types.Part.from_bytes`, and `types.GenerateContentConfig`.
+- Disabled Gemini 2.5 Flash thinking budget for calculator-style JSON responses and increased the JSON output cap.
+- Closed the cached Gen AI client during FastAPI shutdown.
+- Added service-level tests for the Google Gen AI request configuration.
+- Updated backend documentation and ignored Python versioned backend virtualenv directories.
+
+### Verification
+- Ran backend unit tests with Python 3.12.
+- Ran backend Python compile checks with Python 3.12.
+- Verified a direct Google Gen AI SDK call returned strict JSON with `gemini-2.5-flash`.
+- Verified the Python 3.12 FastAPI backend status endpoint reports `provider: google-genai`.
+- Verified `/calculate` end-to-end with a generated `1 + 1 = ?` image and received result `2`.
+- Ran frontend lint, unit tests, and production build from `front-end/`.
+
 ## 2026-05-31 - Add lightweight test harnesses
 
 ### Changed
@@ -279,5 +298,4 @@
 - Checked local frontend and backend smoke endpoints.
 
 ### Notes
-- `google.generativeai` now reports a deprecation warning; migrate to the newer Gemini SDK in a future pass.
-- The local Python runtime reports Python 3.9 support warnings from Google libraries; Python 3.10+ would be healthier.
+- At the time, `google.generativeai` and the local Python 3.9 runtime reported support warnings. This was later addressed by the 2026-06-01 Google Gen AI SDK migration.
