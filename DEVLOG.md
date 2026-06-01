@@ -1,5 +1,16 @@
 # Devlog
 
+## 2026-06-01 - Resolve main dependency merge
+
+### Changed
+- Resolved the `main` merge conflict in `back-end/requirements.txt` by keeping the Google Gen AI SDK migration and the remote Pillow security bump.
+
+### Verification
+- Recreated the backend Python 3.12 virtual environment and installed the merged requirements.
+- Confirmed `google-genai==2.7.0` and `pillow==12.2.0` are installed in `back-end/.venv-py312`.
+- Ran backend unit tests and Python compile checks.
+- Ran frontend lint, unit tests, and production build.
+
 ## 2026-06-01 - Migrate backend to Google Gen AI SDK
 
 ### Changed
