@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 import base64
 import binascii
 from io import BytesIO
@@ -15,6 +15,7 @@ from apps.calculator.service import (
     analyze_image,
     get_solver_status,
 )
+from apps.calculator.security import enforce_calculate_rate_limit, require_access_token
 from constants import MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS
 from schema import CalculateRequest, CalculateResponse, SolverStatusResponse
 
@@ -58,7 +59,11 @@ async def status():
     return get_solver_status()
 
 
-@router.post("", response_model=CalculateResponse)
+@router.post(
+    "",
+    dependencies=[Depends(require_access_token), Depends(enforce_calculate_rate_limit)],
+    response_model=CalculateResponse,
+)
 async def run(data: CalculateRequest):
     image = _decode_image_payload(data.image)
 

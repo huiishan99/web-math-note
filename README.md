@@ -51,9 +51,15 @@ Required backend environment:
 - `GEMINI_API_KEY`: Gemini API key.
 - `GEMINI_MODEL`: defaults to `gemini-2.5-flash`.
 - `CORS_ORIGINS`: comma-separated allowed frontend origins.
+- `BACKEND_ACCESS_TOKEN`: optional bearer token required by `POST /calculate` when set.
+- `RATE_LIMIT_MAX_REQUESTS`: max calculation requests per client per window; `0` disables the in-memory limiter.
+- `RATE_LIMIT_WINDOW_SECONDS`: rate limit window length.
+- `TRUST_PROXY_HEADERS`: set to `true` only when a trusted proxy controls `X-Forwarded-For`.
 - `MAX_IMAGE_BYTES`: request image byte limit.
 - `MAX_IMAGE_PIXELS`: decoded image pixel limit.
 - `SOLVER_TIMEOUT_SECONDS`: Gemini request timeout.
+
+For app packaging, build the frontend with `VITE_API_URL` pointing at the deployed backend. Keep `GEMINI_API_KEY` only on that backend. `VITE_API_ACCESS_TOKEN` can match `BACKEND_ACCESS_TOKEN` for a private build, but it is embedded in the app bundle and should not be treated as a secret for a public release. Public releases need real user authentication plus server-side rate limits, quotas, and billing alerts.
 
 Backend checks:
 

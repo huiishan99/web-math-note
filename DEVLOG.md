@@ -1,5 +1,19 @@
 # Devlog
 
+## 2026-06-04 - Add app backend access guards
+
+### Changed
+- Added optional bearer-token protection for `POST /calculate` through `BACKEND_ACCESS_TOKEN`.
+- Added an in-memory per-client rate limiter for calculation requests.
+- Added basic API security headers.
+- Updated the frontend to send `VITE_API_ACCESS_TOKEN` when a private packaged build uses a backend access token.
+- Documented secure app packaging environment variables and the limits of bundling a frontend token.
+
+### Verification
+- Ran backend unit tests, including token and rate-limit coverage.
+- Ran backend Python compile checks.
+- Ran frontend lint, unit tests, and production build.
+
 ## 2026-06-01 - Resolve main dependency merge
 
 ### Changed

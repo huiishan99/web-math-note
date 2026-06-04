@@ -16,3 +16,5 @@ npm run build
 ```
 
 The app calls `VITE_API_URL` when set, otherwise `http://127.0.0.1:8900`.
+
+For packaged private builds, set `VITE_API_URL` to the deployed backend. Set `VITE_API_ACCESS_TOKEN` only if the backend has `BACKEND_ACCESS_TOKEN`; this token is bundled into the built app and is a lightweight gate, not a replacement for public user authentication.

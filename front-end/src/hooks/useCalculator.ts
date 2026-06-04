@@ -10,6 +10,7 @@ import type {
 } from "@/types/calculator";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8900";
+const API_ACCESS_TOKEN = import.meta.env.VITE_API_ACCESS_TOKEN || "";
 
 function createResultId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -45,7 +46,11 @@ export function useCalculator() {
         image,
         dict_of_vars: variables,
         mode,
-      });
+      }, API_ACCESS_TOKEN ? {
+        headers: {
+          Authorization: `Bearer ${API_ACCESS_TOKEN}`,
+        },
+      } : undefined);
 
       const nextResults = response.data.data.map((item, index) => ({
         id: createResultId(),
