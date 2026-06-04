@@ -6,6 +6,7 @@
 *.env.*
 !.env.example
 !.env.*.example
+artifacts/
 
 back-end/.venv*/
 back-end/**/__pycache__/

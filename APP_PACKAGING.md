@@ -59,6 +59,14 @@ npm run build:app
 
 Deploy `front-end/dist/` to a static HTTPS host. Then open the deployed URL and use the install button when the browser exposes one. On iOS Safari, use the browser share menu and Add to Home Screen.
 
+To create a portable static hosting bundle:
+
+```bash
+npm run package:pwa
+```
+
+The archive is written to `artifacts/web-math-note-pwa.tar.gz` with a `.sha256` checksum file. Upload the extracted archive contents to your HTTPS static host.
+
 ## Security Checklist
 
 - Restrict the Google API key to the Gemini or Generative Language API.
