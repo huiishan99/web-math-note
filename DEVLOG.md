@@ -1,5 +1,24 @@
 # Devlog
 
+## 2026-06-04 - Add desktop app wrapper
+
+### Changed
+- Added an Electron desktop wrapper that opens the frontend in a double-clickable app window.
+- Added a macOS packaging script and desktop environment example.
+- Loaded the desktop renderer from the secure `mathnote://app` origin instead of `file://`.
+- Disabled service worker registration outside HTTP/HTTPS so the desktop shell does not attempt invalid registrations.
+- Documented the desktop CORS origin and packaging flow.
+
+### Verification
+- Installed Electron desktop packaging dependencies.
+- Ran frontend lint, unit tests, and production build.
+- Ran backend unit tests.
+- Ran production dependency audit and upgraded React Router packages until `npm audit --omit=dev` reported 0 vulnerabilities.
+- Ran `npm run package:mac` with a localhost API URL and generated `Math Note.app` plus a macOS arm64 DMG.
+- Verified the generated app code signature.
+- Verified macOS App Transport Security has `NSAllowsArbitraryLoads=false` while allowing local development networking.
+- Launched the generated `Math Note.app` with `open`.
+
 ## 2026-06-04 - Package installable app shell
 
 ### Changed

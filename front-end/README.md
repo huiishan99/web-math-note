@@ -14,6 +14,7 @@ npm run lint
 npm run test
 npm run build
 npm run build:app
+npm run package:mac
 npm run package:pwa
 ```
 

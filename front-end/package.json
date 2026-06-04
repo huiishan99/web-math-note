@@ -2,11 +2,16 @@
   "name": "cals-fe",
   "private": true,
   "version": "0.0.0",
+  "description": "AI-assisted math notebook desktop app.",
+  "author": "Math Note",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:app": "node scripts/verify-app-env.mjs app && tsc -b && vite build --mode app",
+    "build:desktop": "node scripts/verify-app-env.mjs desktop && tsc -b && vite build --mode desktop --base ./",
+    "package:mac": "npm run build:desktop && electron-builder --mac --arm64",
     "package:pwa": "npm run build:app && node scripts/package-pwa.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -35,6 +40,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.13",
@@ -44,5 +51,45 @@
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.10.0",
     "vite": "^6.4.2"
+  },
+  "build": {
+    "appId": "com.webmathnote.app",
+    "productName": "Math Note",
+    "asar": true,
+    "directories": {
+      "output": "../artifacts/desktop"
+    },
+    "afterPack": "electron/after-pack.cjs",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "extendInfo": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "127.0.0.1": {
+              "NSIncludesSubdomains": false,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPSLoads": false
+            },
+            "localhost": {
+              "NSIncludesSubdomains": false,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPSLoads": false
+            }
+          }
+        }
+      },
+      "target": [
+        "dir",
+        "dmg"
+      ]
+    }
   }
 }

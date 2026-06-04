@@ -77,6 +77,34 @@ The archive is written to `artifacts/web-math-note-pwa.tar.gz` with a `.sha256` 
 - Rotate `BACKEND_ACCESS_TOKEN` and `GEMINI_API_KEY` if either one is exposed.
 - Treat `VITE_API_ACCESS_TOKEN` as convenience for private builds, not as a public-app secret.
 
-## Native Shells Later
+## Desktop App
 
-Capacitor or Tauri can wrap the same `front-end/dist/` output later. The security model should stay the same: native shell calls the deployed backend, and the backend owns `GEMINI_API_KEY`.
+The Electron desktop wrapper loads the app through the secure local origin `mathnote://app`. Add that origin to the backend CORS list when using the desktop app:
+
+```bash
+CORS_ORIGINS=https://your-app-domain.example,mathnote://app
+```
+
+Create a desktop env file:
+
+```bash
+cd front-end
+cp .env.desktop.example .env.desktop.local
+```
+
+Edit `front-end/.env.desktop.local`:
+
+```bash
+VITE_API_URL=https://your-backend.example
+VITE_API_ACCESS_TOKEN=the_long_random_token
+```
+
+Build the macOS desktop app:
+
+```bash
+npm run package:mac
+```
+
+The output is written to `artifacts/desktop/`. On macOS Apple Silicon, open `artifacts/desktop/mac-arm64/Math Note.app`. Windows `.exe` should be built from the same Electron config on a Windows runner.
+
+Capacitor or Tauri can also wrap the same frontend later. The security model should stay the same: native shell calls the deployed backend, and the backend owns `GEMINI_API_KEY`.

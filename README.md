@@ -72,4 +72,4 @@ PYTHONPYCACHEPREFIX=/private/tmp/codex-pycache back-end/.venv-py312/bin/python -
 
 - The backend uses `google-genai`, imported as `from google import genai`, for Gemini Developer API calls.
 - Notebook data is stored locally in the browser and can be exported as JSON or PDF from the app.
-- App packaging notes live in `APP_PACKAGING.md`; package the frontend as an installable PWA while keeping Gemini credentials on the backend.
+- App packaging notes live in `APP_PACKAGING.md`; package the frontend as an installable PWA or Electron desktop app while keeping Gemini credentials on the backend.
