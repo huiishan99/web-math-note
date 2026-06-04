@@ -9,6 +9,7 @@ import { VariablePanel } from "@/components/math-board/VariablePanel";
 import { Button } from "@/components/ui/button";
 import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useNotebook } from "@/hooks/useNotebook";
 import { exportBoardAsPng, exportNotebookAsPdf, getExportFilename } from "@/lib/export-board";
 import type { InkBounds } from "@/lib/canvas";
@@ -107,6 +108,7 @@ function getAnswerPosition(bounds: InkBounds, hasVariables: boolean, existingRes
 export default function Home() {
   const drawing = useDrawingCanvas();
   const calculator = useCalculator();
+  const appInstall = useInstallPrompt();
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [eraserCursor, setEraserCursor] = useState<Position | null>(null);
@@ -310,6 +312,10 @@ export default function Home() {
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     setNotice("Exported PDF.");
   };
+
+  const handleInstallApp = useCallback(async () => {
+    setNotice(await appInstall.install() ? "App installed." : "Install dismissed.");
+  }, [appInstall]);
 
   const handleImportNotebook = async (file: File) => {
     try {
@@ -665,6 +671,7 @@ export default function Home() {
         canUndo={canUndo}
         canRedo={canRedo}
         canExport={drawing.hasInk || calculator.results.length > 0}
+        canInstallApp={appInstall.canInstall}
         isLoading={calculator.isLoading}
         onColorChange={drawing.setColor}
         onToolChange={drawing.setTool}
@@ -672,6 +679,7 @@ export default function Home() {
         onStrokeWidthChange={drawing.setStrokeWidth}
         onRun={handleRun}
         onExport={handleExport}
+        onInstallApp={handleInstallApp}
         onRedo={handleRedo}
         onReset={handleReset}
         onUndo={handleUndo}

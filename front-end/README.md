@@ -13,6 +13,7 @@ Checks:
 npm run lint
 npm run test
 npm run build
+npm run build:app
 ```
 
 The app calls `VITE_API_URL` when set, otherwise `http://127.0.0.1:8900`.

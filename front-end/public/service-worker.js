@@ -1,4 +1,4 @@
-const CACHE_NAME = "web-math-note-shell-v1";
+const CACHE_NAME = "web-math-note-shell-v2";
 const SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -28,7 +28,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   if (url.pathname.startsWith("/calculate") || url.pathname.startsWith("/api")) {
+    return;
+  }
+
+  const cacheableDestinations = new Set(["", "document", "font", "image", "manifest", "script", "style"]);
+  if (!cacheableDestinations.has(request.destination)) {
     return;
   }
 

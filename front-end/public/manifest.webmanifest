@@ -2,8 +2,12 @@
   "name": "Math Note",
   "short_name": "Math Note",
   "description": "A local-first AI math whiteboard.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
+  "categories": ["education", "productivity", "utilities"],
   "background_color": "#08090b",
   "theme_color": "#08090b",
   "icons": [

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:app": "node scripts/verify-app-env.mjs app && tsc -b && vite build --mode app",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "npm run test:unit",

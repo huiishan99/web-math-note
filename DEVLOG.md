@@ -1,5 +1,20 @@
 # Devlog
 
+## 2026-06-04 - Package installable app shell
+
+### Changed
+- Added an app build mode that verifies `VITE_API_URL` before packaging the frontend.
+- Added a PWA install prompt hook and toolbar install action for browsers that expose app installation.
+- Tightened the service worker to cache same-origin shell assets only and avoid API requests.
+- Expanded the web app manifest with app identity, scope, orientation, and categories.
+- Added app packaging documentation for secure backend/API key handling.
+
+### Verification
+- Ran frontend lint and unit tests.
+- Ran `npm run build:app` with an HTTPS `VITE_API_URL` to verify app-mode packaging.
+- Ran backend unit tests to confirm the guarded API layer still passes.
+- Browser visual verification was attempted, but the in-app browser security policy blocked the local page screenshot action.
+
 ## 2026-06-04 - Add app backend access guards
 
 ### Changed

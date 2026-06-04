@@ -5,6 +5,7 @@ import {
   ListTree,
   type LucideIcon,
   LoaderCircle,
+  MonitorDown,
   MousePointer2,
   PenLine,
   Redo2,
@@ -28,6 +29,7 @@ interface ToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   canExport: boolean;
+  canInstallApp: boolean;
   isLoading: boolean;
   onColorChange: (color: string) => void;
   onToolChange: (tool: DrawingTool) => void;
@@ -35,6 +37,7 @@ interface ToolbarProps {
   onStrokeWidthChange: (width: number) => void;
   onRun: () => void;
   onExport: () => void;
+  onInstallApp: () => void;
   onRedo: () => void;
   onReset: () => void;
   onUndo: () => void;
@@ -59,6 +62,7 @@ export function Toolbar({
   canUndo,
   canRedo,
   canExport,
+  canInstallApp,
   isLoading,
   onColorChange,
   onToolChange,
@@ -66,6 +70,7 @@ export function Toolbar({
   onStrokeWidthChange,
   onRun,
   onExport,
+  onInstallApp,
   onRedo,
   onReset,
   onUndo,
@@ -208,6 +213,21 @@ export function Toolbar({
         <Download />
         <span className="sr-only">Export PNG</span>
       </Button>
+      {canInstallApp && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className={toolButtonClass}
+          onClick={onInstallApp}
+          disabled={isLoading}
+          aria-label="Install app"
+          title="Install app"
+        >
+          <MonitorDown />
+          <span className="sr-only">Install app</span>
+        </Button>
+      )}
       <Button
         type="button"
         size="icon"
