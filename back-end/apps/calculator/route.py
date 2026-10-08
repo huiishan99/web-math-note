@@ -4,6 +4,7 @@ import binascii
 from io import BytesIO
 import logging
 import re
+import warnings
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 from PIL import Image
@@ -24,6 +25,17 @@ from schema import CalculateRequest, CalculateResponse, SolverStatusResponse
 router = APIRouter()
 logger = logging.getLogger(__name__)
 IMAGE_DATA_URL_RE = re.compile(r"^data:image/(png|jpeg|jpg|webp);base64,", re.IGNORECASE)
+MIME_IMAGE_FORMATS = {"png": "PNG", "jpeg": "JPEG", "jpg": "JPEG", "webp": "WEBP"}
+
+
+def _matches_image_signature(image_data: bytes, image_format: str) -> bool:
+    if image_format == "PNG":
+        return image_data.startswith(b"\x89PNG\r\n\x1a\n")
+    if image_format == "JPEG":
+        return image_data.startswith(b"\xff\xd8\xff")
+    if image_format == "WEBP":
+        return image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP"
+    return False
 
 
 def _decode_image_payload(image_payload: str) -> Image.Image:
@@ -44,18 +56,33 @@ def _decode_image_payload(image_payload: str) -> Image.Image:
     if len(image_data) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image payload is too large.")
 
+    expected_format = MIME_IMAGE_FORMATS[match.group(1).lower()]
+    if not _matches_image_signature(image_data, expected_format):
+        # Reject unsupported or mislabeled bytes before any Pillow parser runs.
+        raise HTTPException(status_code=400, detail="Image content does not match its declared type.")
+
     try:
-        image = Image.open(BytesIO(image_data))
-        if image.width * image.height > MAX_IMAGE_PIXELS:
-            raise HTTPException(status_code=413, detail="Image dimensions are too large.")
-        image.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            # Narrow parser selection to the declared, signature-checked format.
+            # Image.open() with no formats restriction can invoke EPS/JPEG2000
+            # parsers before the application has a chance to reject the file.
+            with Image.open(BytesIO(image_data), formats=[expected_format]) as image:
+                if image.format != expected_format:
+                    raise HTTPException(status_code=400, detail="Image content does not match its declared type.")
+                if image.width * image.height > MAX_IMAGE_PIXELS:
+                    raise HTTPException(status_code=413, detail="Image dimensions are too large.")
+                image.verify()
+
+            # verify() consumes the input; reopen through the same restricted
+            # parser to decode, then return an independent RGB image.
+            with Image.open(BytesIO(image_data), formats=[expected_format]) as image:
+                image.load()
+                return image.convert("RGB")
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+        raise HTTPException(status_code=413, detail="Image dimensions are too large.") from exc
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
         raise HTTPException(status_code=400, detail="Invalid image payload.") from exc
-
-    if image.width * image.height > MAX_IMAGE_PIXELS:
-        raise HTTPException(status_code=413, detail="Image dimensions are too large.")
-
-    return image.convert("RGB")
 
 
 @router.get("/status", response_model=SolverStatusResponse)
