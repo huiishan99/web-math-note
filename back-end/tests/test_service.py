@@ -33,6 +33,15 @@ class VisionSolverServiceTest(unittest.TestCase):
 
         self.assertEqual(status.provider, "google-genai")
 
+    def test_reports_bot_readiness_without_exposing_secrets(self):
+        with patch.multiple("apps.calculator.service", GEMINI_API_KEY="test-key", TURNSTILE_REQUIRED=True, TURNSTILE_SECRET_KEY="test-secret", TURNSTILE_ALLOWED_HOSTNAMES=["example.test"]):
+            status = get_solver_status()
+        self.assertTrue(status.configured)
+        self.assertTrue(status.human_verification_required)
+        self.assertTrue(status.human_verification_configured)
+        self.assertNotIn("test-key", status.model_dump_json())
+        self.assertNotIn("test-secret", status.model_dump_json())
+
     def test_disables_thinking_for_flash_models(self):
         config = _solver_thinking_config("gemini-2.5-flash")
 

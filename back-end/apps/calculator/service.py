@@ -10,7 +10,10 @@ from PIL import Image
 
 from apps.calculator.parser import SolverResponseError, parse_solver_response
 from apps.calculator.prompts import build_solver_prompt
-from constants import GEMINI_API_KEY, GEMINI_MODEL, SOLVER_TIMEOUT_SECONDS
+from constants import (
+    GEMINI_API_KEY, GEMINI_MODEL, SOLVER_TIMEOUT_SECONDS,
+    TURNSTILE_REQUIRED, TURNSTILE_SECRET_KEY, TURNSTILE_ALLOWED_HOSTNAMES,
+)
 from schema import CalculationItem, SolverStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -21,7 +24,9 @@ class SolverConfigurationError(RuntimeError):
 
 
 class SolverProviderError(RuntimeError):
-    pass
+    def __init__(self, message: str, status_code: int = 502):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def get_solver_status() -> SolverStatusResponse:
@@ -29,6 +34,8 @@ def get_solver_status() -> SolverStatusResponse:
         provider="google-genai",
         model=GEMINI_MODEL,
         configured=bool(GEMINI_API_KEY),
+        human_verification_required=TURNSTILE_REQUIRED or bool(TURNSTILE_SECRET_KEY),
+        human_verification_configured=bool(TURNSTILE_SECRET_KEY and TURNSTILE_ALLOWED_HOSTNAMES),
     )
 
 
@@ -36,7 +43,7 @@ class VisionSolverService:
     def __init__(self, api_key: str | None = GEMINI_API_KEY, model_name: str = GEMINI_MODEL):
         if not api_key:
             raise SolverConfigurationError(
-                "AI solver is not configured. Add GEMINI_API_KEY to back-end/.env before running calculations."
+                "AI solver is not configured. Set GEMINI_API_KEY in the backend environment before running calculations."
             )
 
         self.client = genai.Client(api_key=api_key)
@@ -51,7 +58,10 @@ class VisionSolverService:
                     _image_to_part(img),
                 ],
                 config=types.GenerateContentConfig(
-                    http_options=types.HttpOptions(timeout=SOLVER_TIMEOUT_SECONDS * 1000),
+                    http_options=types.HttpOptions(
+                        timeout=SOLVER_TIMEOUT_SECONDS * 1000,
+                        retry_options=types.HttpRetryOptions(attempts=1),
+                    ),
                     response_mime_type="application/json",
                     temperature=0,
                     max_output_tokens=2048,
@@ -59,7 +69,13 @@ class VisionSolverService:
                 ),
             )
         except Exception as exc:
-            logger.exception("AI solver request failed")
+            # Never log raw provider responses, drawings or credential details.
+            logger.warning("AI solver request failed (%s)", type(exc).__name__)
+            if getattr(exc, "code", None) == 429:
+                raise SolverProviderError(
+                    "The free AI service is currently busy or its quota is exhausted. Please try again later.",
+                    status_code=429,
+                ) from exc
             raise SolverProviderError(
                 "AI solver request failed. Check whether GEMINI_API_KEY is present, valid, and allowed to call this model."
             ) from exc

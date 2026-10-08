@@ -5,6 +5,7 @@ from io import BytesIO
 import logging
 import re
 from fastapi import HTTPException
+from starlette.concurrency import run_in_threadpool
 from PIL import Image
 from PIL import UnidentifiedImageError
 
@@ -16,6 +17,7 @@ from apps.calculator.service import (
     get_solver_status,
 )
 from apps.calculator.security import enforce_calculate_rate_limit, require_access_token
+from apps.calculator.turnstile import verify_human
 from constants import MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS
 from schema import CalculateRequest, CalculateResponse, SolverStatusResponse
 
@@ -44,6 +46,8 @@ def _decode_image_payload(image_payload: str) -> Image.Image:
 
     try:
         image = Image.open(BytesIO(image_data))
+        if image.width * image.height > MAX_IMAGE_PIXELS:
+            raise HTTPException(status_code=413, detail="Image dimensions are too large.")
         image.load()
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise HTTPException(status_code=400, detail="Invalid image payload.") from exc
@@ -65,16 +69,17 @@ async def status():
     response_model=CalculateResponse,
 )
 async def run(data: CalculateRequest):
+    await run_in_threadpool(verify_human, data.turnstile_token)
     image = _decode_image_payload(data.image)
 
     try:
-        responses = analyze_image(image, dict_of_vars=data.dict_of_vars, mode=data.mode)
+        responses = await run_in_threadpool(analyze_image, image, dict_of_vars=data.dict_of_vars, mode=data.mode)
     except SolverConfigurationError as exc:
         logger.warning("Solver is not configured")
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except SolverProviderError as exc:
         logger.warning("Solver provider failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     except SolverResponseError as exc:
         logger.warning("Solver returned an unusable response")
         raise HTTPException(status_code=502, detail=str(exc)) from exc
