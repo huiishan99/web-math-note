@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -7,6 +8,7 @@ import uvicorn
 from apps.calculator.route import router as calculator_router
 from apps.calculator.service import close_solver_service
 from apps.calculator.body_limit import RequestBodyLimitMiddleware
+from apps.frontend import mount_frontend
 from constants import CORS_ORIGINS, SERVER_URL, PORT, ENV, MAX_REQUEST_BYTES
 
 @asynccontextmanager
@@ -44,13 +46,14 @@ async def add_security_headers(request, call_next):
     return response
 
 
-@app.get('/')
 @app.get('/api/health')
 async def root():
     return {"message": "Server is running"}
 
 app.include_router(calculator_router, prefix="/calculate", tags=["calculate"])
 app.include_router(calculator_router, prefix="/api/calculate", tags=["calculate"])
+
+mount_frontend(app, Path(__file__).resolve().parents[1] / "web-build")
 
 
 if __name__ == "__main__":

@@ -4,20 +4,20 @@
 
 One existing Vercel project hosts both parts:
 
-- React is built into `public/` and served by Vercel's CDN.
+- React is built into `web-build/`, bundled with the FastAPI function, and served by Starlette StaticFiles. Hashed assets receive long-lived cache headers.
 - The stable FastAPI framework preset loads `app.py`, which imports the existing backend.
 - The browser sends drawings to `/api/calculate` on its own deployment. No Render URL, new backend account, database, or cross-origin request is needed.
 - Local development and packaged clients retain the original `/calculate` endpoint.
 - Notebook data stays in browser storage. The selected drawing and variable context go to Gemini only when a visitor selects Solve.
 
-This uses ordinary Vercel Functions, not the Services beta. Python is pinned to 3.12 and the frontend build requests Node 24. The root `vercel.json` excludes frontend dependencies, generated static assets, tests, and local environment files from the Python bundle.
+This uses ordinary Vercel Functions, not the Services beta. Python is pinned to 3.12 and the frontend build requests Node 24. The root `vercel.json` excludes frontend dependencies, tests, and local environment files from the Python bundle. The small generated web build is intentionally included, because files generated during the FastAPI build are not picked up by Vercel's separate source-only public-file builder. Initial page loads may invoke Python.
 
 ## One-time project settings
 
 In the existing **HuiShan's projects → math-notes-clone** project:
 
 1. Set Root Directory to the repository root (blank / `.`), not `front-end`.
-2. Use the FastAPI framework preset and Node 24. Remove old dashboard Install/Build/Output Directory overrides so the repository configuration controls the build. The frontend build outputs `public/`; do not set `front-end/dist` as the project Output Directory.
+2. Use the FastAPI framework preset and Node 24. Remove old dashboard Install/Build/Output Directory overrides so the repository configuration controls the build. The frontend build outputs `web-build/`; do not set `front-end/dist` as the project Output Directory.
 3. Keep the existing domain. Verify a preview before publishing production.
 
 The old project's Node 20 setting needs attention because Vercel no longer accepts new Node 20 builds. The root `package.json` requests Node 24, but verify the actual build log before treating migration as complete.
@@ -63,7 +63,7 @@ PYTHONPATH=back-end .venv/bin/python -m unittest discover -s back-end/tests
 ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm --prefix front-end ci
 npm --prefix front-end run lint
 npm --prefix front-end test
-VITE_API_URL=/api VITE_API_ACCESS_TOKEN= npm --prefix front-end run build -- --outDir ../public --emptyOutDir
+VITE_API_URL=/api VITE_API_ACCESS_TOKEN= npm --prefix front-end run build -- --outDir ../web-build --emptyOutDir
 ```
 
 Then check the intended Vercel deployment:

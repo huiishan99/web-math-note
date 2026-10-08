@@ -1,6 +1,6 @@
 """Vercel entrypoint for the existing FastAPI backend.
 
-The React build is served separately from public/ by Vercel's CDN.
+The generated React build is bundled with the app and served by StaticFiles.
 """
 
 from pathlib import Path
