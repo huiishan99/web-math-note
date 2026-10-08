@@ -10,17 +10,17 @@ One existing Vercel project hosts both parts:
 - Local development and packaged clients retain the original `/calculate` endpoint.
 - Notebook data stays in browser storage. The selected drawing and variable context go to Gemini only when a visitor selects Solve.
 
-This uses ordinary Vercel Functions, not the Services beta. Python is pinned to 3.12 and the frontend build requests Node 22. The root `vercel.json` excludes frontend dependencies, generated static assets, tests, and local environment files from the Python bundle.
+This uses ordinary Vercel Functions, not the Services beta. Python is pinned to 3.12 and the frontend build requests Node 24. The root `vercel.json` excludes frontend dependencies, generated static assets, tests, and local environment files from the Python bundle.
 
 ## One-time project settings
 
 In the existing **HuiShan's projects → math-notes-clone** project:
 
 1. Set Root Directory to the repository root (blank / `.`), not `front-end`.
-2. Use the FastAPI framework preset and Node 22. Remove old dashboard Install/Build/Output Directory overrides so the repository configuration controls the build. The frontend build outputs `public/`; do not set `front-end/dist` as the project Output Directory.
+2. Use the FastAPI framework preset and Node 24. Remove old dashboard Install/Build/Output Directory overrides so the repository configuration controls the build. The frontend build outputs `public/`; do not set `front-end/dist` as the project Output Directory.
 3. Keep the existing domain. Verify a preview before publishing production.
 
-The old project's Node 20 setting needs attention because Vercel no longer accepts new Node 20 builds. The root `package.json` requests Node 22, but verify the actual build log before treating migration as complete.
+The old project's Node 20 setting needs attention because Vercel no longer accepts new Node 20 builds. The root `package.json` requests Node 24, but verify the actual build log before treating migration as complete.
 
 ## Server-only environment variables
 
