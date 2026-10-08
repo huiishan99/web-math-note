@@ -93,7 +93,8 @@ export function useHumanVerification() {
     };
   }, [removeWidget]);
 
-  const verify = useCallback((): Promise<string | undefined> => {
+  const verify = useCallback((required = true): Promise<string | undefined> => {
+    if (!required) return Promise.resolve(undefined);
     const sitekey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
     if (!sitekey && import.meta.env.DEV) return Promise.resolve(undefined);
     if (!sitekey) return Promise.reject(new Error("The solver's bot protection is not configured yet."));

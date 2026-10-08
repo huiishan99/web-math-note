@@ -10,7 +10,10 @@ from PIL import Image
 
 from apps.calculator.parser import SolverResponseError, parse_solver_response
 from apps.calculator.prompts import build_solver_prompt
-from constants import GEMINI_API_KEY, GEMINI_MODEL, SOLVER_TIMEOUT_SECONDS
+from constants import (
+    GEMINI_API_KEY, GEMINI_MODEL, SOLVER_TIMEOUT_SECONDS,
+    TURNSTILE_REQUIRED, TURNSTILE_SECRET_KEY, TURNSTILE_ALLOWED_HOSTNAMES,
+)
 from schema import CalculationItem, SolverStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,8 @@ def get_solver_status() -> SolverStatusResponse:
         provider="google-genai",
         model=GEMINI_MODEL,
         configured=bool(GEMINI_API_KEY),
+        human_verification_required=TURNSTILE_REQUIRED or bool(TURNSTILE_SECRET_KEY),
+        human_verification_configured=bool(TURNSTILE_SECRET_KEY and TURNSTILE_ALLOWED_HOSTNAMES),
     )
 
 

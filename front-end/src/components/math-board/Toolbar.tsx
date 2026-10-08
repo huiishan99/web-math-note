@@ -31,6 +31,8 @@ interface ToolbarProps {
   canExport: boolean;
   canInstallApp: boolean;
   isLoading: boolean;
+  canSolve?: boolean;
+  solveDisabledReason?: string;
   onColorChange: (color: string) => void;
   onToolChange: (tool: DrawingTool) => void;
   onSolutionModeChange: (mode: SolverMode) => void;
@@ -64,6 +66,8 @@ export function Toolbar({
   canExport,
   canInstallApp,
   isLoading,
+  canSolve = true,
+  solveDisabledReason,
   onColorChange,
   onToolChange,
   onSolutionModeChange,
@@ -233,10 +237,10 @@ export function Toolbar({
         size="icon"
         variant="ghost"
         onClick={onRun}
-        disabled={isLoading}
+        disabled={isLoading || !canSolve}
         className="!h-8 !w-8 shrink-0 bg-white text-black transition hover:bg-white/90 active:scale-95 disabled:bg-white/60 sm:!h-9 sm:!w-9"
         aria-label="Solve"
-        title="Solve"
+        title={solveDisabledReason || "Solve"}
       >
         {isLoading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
         <span className="sr-only">Solve</span>

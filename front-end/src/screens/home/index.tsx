@@ -11,6 +11,7 @@ import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useHumanVerification } from "@/hooks/useHumanVerification";
+import { useSolverReadiness } from "@/hooks/useSolverReadiness";
 import { useNotebook } from "@/hooks/useNotebook";
 import { exportBoardAsPng, exportNotebookAsPdf, getExportFilename } from "@/lib/export-board";
 import type { InkBounds } from "@/lib/canvas";
@@ -111,6 +112,7 @@ export default function Home() {
   const calculator = useCalculator();
   const appInstall = useInstallPrompt();
   const humanVerification = useHumanVerification();
+  const solverReadiness = useSolverReadiness();
   const solveInProgressRef = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
@@ -174,6 +176,10 @@ export default function Home() {
 
   const handleRun = async () => {
     if (solveInProgressRef.current) return;
+    if (solverReadiness.state !== "ready") {
+      calculator.setError(solverReadiness.message);
+      return;
+    }
     const payload = selectedInkRect
       ? drawing.getCanvasRegionPayload(selectedInkRect)
       : drawing.getCanvasPayload();
@@ -187,7 +193,7 @@ export default function Home() {
     setNotice(null);
     calculator.setError(null);
     try {
-      const token = await humanVerification.verify();
+      const token = await humanVerification.verify(solverReadiness.needsVerification);
       pushHistory();
       await calculator.calculate(
         payload.image,
@@ -539,7 +545,7 @@ export default function Home() {
     selectedResultId,
   ]);
 
-  const statusMessage = notice || calculator.error || storageError;
+  const statusMessage = notice || calculator.error || storageError || solverReadiness.message;
   const statusTone = calculator.error || storageError ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
   const statusPosition = calculator.hasVariables
     ? "bottom-[calc(env(safe-area-inset-bottom)+16rem)] xl:bottom-4"
@@ -613,7 +619,7 @@ export default function Home() {
               }}
               aria-label="Solve selected ink"
               title="Solve selected ink"
-              disabled={calculator.isLoading || humanVerification.isVerifying}
+              disabled={calculator.isLoading || humanVerification.isVerifying || solverReadiness.state !== "ready"}
             >
               <Sparkles />
               <span className="sr-only">Solve selected ink</span>
@@ -689,6 +695,8 @@ export default function Home() {
         canExport={drawing.hasInk || calculator.results.length > 0}
         canInstallApp={appInstall.canInstall}
         isLoading={calculator.isLoading || humanVerification.isVerifying}
+        canSolve={solverReadiness.state === "ready"}
+        solveDisabledReason={solverReadiness.message || undefined}
         onColorChange={drawing.setColor}
         onToolChange={drawing.setTool}
         onSolutionModeChange={setSolutionMode}
@@ -713,8 +721,11 @@ export default function Home() {
         <VariablePanel variables={calculator.variables} onRemove={handleRemoveVariable} />
       )}
       {statusMessage && (
-        <div className={`fixed left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition} ${statusTone}`}>
+        <div role="status" className={`fixed left-1/2 z-40 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-3 py-2 text-sm shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition} ${statusTone}`}>
           {statusMessage}
+          {solverReadiness.state === "unavailable" && (
+            <button type="button" className="ml-2 underline underline-offset-2" onClick={() => { setNotice(null); calculator.setError(null); void solverReadiness.refresh(); }}>Recheck</button>
+          )}
         </div>
       )}
     </main>

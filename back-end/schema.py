@@ -43,6 +43,8 @@ class SolverStatusResponse(BaseModel):
     provider: str
     model: str
     configured: bool
+    human_verification_required: bool = False
+    human_verification_configured: bool = False
 
 
 ImageData = CalculateRequest
