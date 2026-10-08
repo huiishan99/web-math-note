@@ -2,6 +2,8 @@ import asyncio
 import base64
 from io import BytesIO
 import unittest
+import tomllib
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi import HTTPException
@@ -20,6 +22,12 @@ from test_security import make_request
 class DeploymentTest(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
+
+    def test_hosted_dependencies_match_local_backend(self):
+        root = Path(__file__).resolve().parents[2]
+        project = tomllib.loads((root / "pyproject.toml").read_text())["project"]
+        requirements = (root / "back-end/requirements.txt").read_text().splitlines()
+        self.assertEqual(sorted(project["dependencies"]), sorted(requirements))
 
     def test_health_and_solver_status_are_same_origin_api_routes(self):
         self.assertEqual(self.client.get("/api/health").status_code, 200)
