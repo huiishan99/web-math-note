@@ -7,6 +7,11 @@
 !.env.example
 !.env.*.example
 artifacts/
+public/
+.vercel/
+.venv/
 
 back-end/.venv*/
 back-end/**/__pycache__/
+
+__pycache__/

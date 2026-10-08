@@ -8,6 +8,10 @@ AI-assisted math notebook with a React canvas frontend and a FastAPI backend tha
 - `back-end/`: FastAPI calculator API and Gemini solver integration.
 - `DEVLOG.md`: chronological change log for implementation batches.
 
+## Deploy to Vercel
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the single-project FastAPI + React deployment and managed bot protection. Public AI calls remain blocked until the server-only Gemini and Turnstile settings are configured.
+
 ## Frontend
 
 ```bash
@@ -24,7 +28,7 @@ npm run test
 npm run build
 ```
 
-Set `VITE_API_URL` if the backend is not running at `http://127.0.0.1:8900`.
+Development defaults to `http://127.0.0.1:8900`; production defaults to same-origin `/api`. Set `VITE_API_URL` only for a different standalone backend.
 
 ## Backend
 

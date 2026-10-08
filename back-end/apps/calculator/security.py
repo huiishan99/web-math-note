@@ -13,6 +13,7 @@ from constants import (
     RATE_LIMIT_MAX_REQUESTS,
     RATE_LIMIT_WINDOW_SECONDS,
     TRUST_PROXY_HEADERS,
+    VERCEL_DEPLOYMENT,
 )
 
 
@@ -72,6 +73,11 @@ def enforce_calculate_rate_limit(request: Request) -> None:
 
 
 def _client_key(request: Request) -> str:
+    if VERCEL_DEPLOYMENT:
+        # Vercel overwrites this header at its trusted edge. Never use a
+        # user-controlled forwarded header on a standalone deployment.
+        forwarded_for = request.headers.get("x-vercel-forwarded-for", "")
+        return forwarded_for.split(",", 1)[0].strip() or "unknown"
     if TRUST_PROXY_HEADERS:
         forwarded_for = request.headers.get("x-forwarded-for")
         if forwarded_for:

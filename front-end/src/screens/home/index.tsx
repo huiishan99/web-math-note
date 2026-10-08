@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useCalculator } from "@/hooks/useCalculator";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useHumanVerification } from "@/hooks/useHumanVerification";
 import { useNotebook } from "@/hooks/useNotebook";
 import { exportBoardAsPng, exportNotebookAsPdf, getExportFilename } from "@/lib/export-board";
 import type { InkBounds } from "@/lib/canvas";
@@ -109,6 +110,8 @@ export default function Home() {
   const drawing = useDrawingCanvas();
   const calculator = useCalculator();
   const appInstall = useInstallPrompt();
+  const humanVerification = useHumanVerification();
+  const solveInProgressRef = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [eraserCursor, setEraserCursor] = useState<Position | null>(null);
@@ -170,6 +173,7 @@ export default function Home() {
   }, [notebook.activePageId]);
 
   const handleRun = async () => {
+    if (solveInProgressRef.current) return;
     const payload = selectedInkRect
       ? drawing.getCanvasRegionPayload(selectedInkRect)
       : drawing.getCanvasPayload();
@@ -179,13 +183,23 @@ export default function Home() {
       return;
     }
 
-    pushHistory();
+    solveInProgressRef.current = true;
     setNotice(null);
-    await calculator.calculate(
-      payload.image,
-      getAnswerPosition(payload.bounds, calculator.hasVariables, calculator.results),
-      solutionMode,
-    );
+    calculator.setError(null);
+    try {
+      const token = await humanVerification.verify();
+      pushHistory();
+      await calculator.calculate(
+        payload.image,
+        getAnswerPosition(payload.bounds, calculator.hasVariables, calculator.results),
+        solutionMode,
+        token,
+      );
+    } catch (error) {
+      calculator.setError(error instanceof Error ? error.message : "Browser verification failed. Please try again.");
+    } finally {
+      solveInProgressRef.current = false;
+    }
   };
 
   const handleReset = () => {
@@ -534,6 +548,7 @@ export default function Home() {
 
   return (
     <main className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#090a0c] text-white">
+      <div ref={humanVerification.containerRef} className="fixed right-4 top-20 z-50" aria-label="Browser verification" />
       <CanvasBoard
         canvasRef={drawing.canvasRef}
         tool={drawing.tool}
@@ -598,6 +613,7 @@ export default function Home() {
               }}
               aria-label="Solve selected ink"
               title="Solve selected ink"
+              disabled={calculator.isLoading || humanVerification.isVerifying}
             >
               <Sparkles />
               <span className="sr-only">Solve selected ink</span>
@@ -672,7 +688,7 @@ export default function Home() {
         canRedo={canRedo}
         canExport={drawing.hasInk || calculator.results.length > 0}
         canInstallApp={appInstall.canInstall}
-        isLoading={calculator.isLoading}
+        isLoading={calculator.isLoading || humanVerification.isVerifying}
         onColorChange={drawing.setColor}
         onToolChange={drawing.setTool}
         onSolutionModeChange={setSolutionMode}

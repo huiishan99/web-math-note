@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
+import { CALCULATION_TIMEOUT_MS, MAX_IMAGE_DATA_URL_LENGTH, resolveApiUrl } from "@/lib/api-config";
 
 import type {
   CalculationItem,
@@ -9,7 +10,7 @@ import type {
   VariableMap,
 } from "@/types/calculator";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8900";
+const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL, import.meta.env.DEV);
 const API_ACCESS_TOKEN = import.meta.env.VITE_API_ACCESS_TOKEN || "";
 
 function createResultId() {
@@ -37,20 +38,26 @@ export function useCalculator() {
 
   const hasVariables = useMemo(() => Object.keys(variables).length > 0, [variables]);
 
-  const calculate = useCallback(async (image: string, position: Position, mode: SolverMode = "quick") => {
+  const calculate = useCallback(async (image: string, position: Position, mode: SolverMode = "quick", turnstileToken?: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
+      if (image.length > MAX_IMAGE_DATA_URL_LENGTH) {
+        setError("The drawing is too large to send. Try solving a smaller selection.");
+        return [];
+      }
       const response = await axios.post<CalculatorApiResponse>(`${API_URL}/calculate`, {
         image,
         dict_of_vars: variables,
         mode,
-      }, API_ACCESS_TOKEN ? {
-        headers: {
+        turnstile_token: turnstileToken,
+      }, {
+        timeout: CALCULATION_TIMEOUT_MS,
+        headers: API_ACCESS_TOKEN ? {
           Authorization: `Bearer ${API_ACCESS_TOKEN}`,
-        },
-      } : undefined);
+        } : undefined,
+      });
 
       const nextResults = response.data.data.map((item, index) => ({
         id: createResultId(),
@@ -73,7 +80,9 @@ export function useCalculator() {
       if (axios.isAxiosError(requestError)) {
         const status = requestError.response?.status;
         const responseDetail = requestError.response?.data?.detail;
-        if (requestError.message === "Network Error") {
+        if (requestError.code === "ECONNABORTED") {
+          detail = "The solver took too long to respond. Please try again.";
+        } else if (requestError.message === "Network Error") {
           detail = `Cannot reach backend at ${API_URL}.`;
         } else if (status === 401 || status === 403) {
           detail = responseDetail || "Gemini key is missing, invalid, or not allowed for this model.";
