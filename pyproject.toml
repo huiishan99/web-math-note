@@ -7,7 +7,7 @@ dependencies = [
   "uvicorn==0.39.0",
   "pydantic==2.13.4",
   "google-genai==2.7.0",
-  "pillow==12.2.0",
+  "pillow==12.3.0",
   "python-dotenv==1.2.2",
   "httpx==0.28.1",
 ]
