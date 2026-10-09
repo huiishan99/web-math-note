@@ -14,8 +14,6 @@ jobs:
       PYTHONPATH: back-end
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
@@ -40,22 +38,15 @@ jobs:
           "$RUNNER_TEMP/browser/node_modules/.bin/playwright" install --with-deps chromium
           python -m uvicorn main:app --host 127.0.0.1 --port 8916 > "$RUNNER_TEMP/mathnote-server.log" 2>&1 &
           server_pid=$!
-          # Compare this one-time toolchain migration against the last v3 build.
-          mkdir -p "$RUNNER_TEMP/tailwind-baseline"
-          git archive 30db053 front-end | tar -x -C "$RUNNER_TEMP/tailwind-baseline"
-          npm --prefix "$RUNNER_TEMP/tailwind-baseline/front-end" ci
-          npm --prefix "$RUNNER_TEMP/tailwind-baseline/front-end" run build
-          python -m http.server 8919 --bind 127.0.0.1 --directory "$RUNNER_TEMP/tailwind-baseline/front-end/dist" > "$RUNNER_TEMP/baseline.log" 2>&1 &
-          baseline_pid=$!
           npm --prefix front-end run dev -- --host 127.0.0.1 --port 8920 > "$RUNNER_TEMP/vite.log" 2>&1 &
           vite_pid=$!
-          trap 'kill "$server_pid" "$baseline_pid" "$vite_pid" || true' EXIT
+          trap 'kill "$server_pid" "$vite_pid" || true' EXIT
           for attempt in $(seq 1 30); do
             curl --fail --silent http://127.0.0.1:8916/api/health && break
             sleep 1
           done
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" node scripts/browser-smoke.cjs
-          PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" BASELINE_URL=http://127.0.0.1:8919 DEV_URL=http://127.0.0.1:8920 VISUAL_ARTIFACT_DIR="$RUNNER_TEMP/tailwind-visual" node scripts/tailwind-regression.cjs
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" DEV_URL=http://127.0.0.1:8920 VISUAL_ARTIFACT_DIR="$RUNNER_TEMP/tailwind-visual" node scripts/tailwind-regression.cjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
