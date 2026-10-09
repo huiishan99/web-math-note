@@ -60,7 +60,10 @@ jobs:
         if: always()
         with:
           name: tailwind-visual-regression
-          path: ${{ runner.temp }}/tailwind-visual
+          path: |
+            ${{ runner.temp }}/tailwind-visual
+            ${{ runner.temp }}/vite.log
+            ${{ runner.temp }}/mathnote-server.log
           retention-days: 7
           if-no-files-found: ignore
       - name: Desktop package regression (not a release)

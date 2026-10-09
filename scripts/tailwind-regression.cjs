@@ -34,6 +34,13 @@ async function openPage(browser, url, viewport) {
   const page = await context.newPage();
   const errors = [];
   const forbiddenCalls = [];
+  const browserEvents = [];
+  const recordEvent = event => { if (browserEvents.length < 100) browserEvents.push(event); };
+  page.on('console', message => recordEvent({ type: 'console', level: message.type(), text: message.text() }));
+  page.on('websocket', socket => {
+    recordEvent({ type: 'websocket', url: socket.url() });
+    socket.on('framereceived', frame => recordEvent({ type: 'websocket-frame', payload: String(frame.payload).slice(0, 2000) }));
+  });
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/*', async route => {
     const request = route.request();
@@ -69,7 +76,7 @@ async function openPage(browser, url, viewport) {
   await page.mouse.move(viewport.width - 1, Math.floor(viewport.height / 2));
   // Allow the initial canvas restoration and autosave effects to settle.
   await page.waitForTimeout(250);
-  return { page, context, errors, forbiddenCalls };
+  return { page, context, errors, forbiddenCalls, browserEvents };
 }
 
 async function snapshot(page) {
@@ -256,35 +263,87 @@ async function verifyInteractions(page, viewport) {
 async function verifyHmr(browser, url) {
   const source = process.env.HMR_SOURCE_DIR || path.resolve(__dirname, '../front-end/src');
   const file = path.join(source, `tailwind-hmr-probe-${process.pid}.tsx`);
-  const session = await openPage(browser, url, viewports[0]);
+  const moduleUrl = `/src/${path.basename(file)}`;
+  const moduleSource = classes => `
+export const tailwindHmrProbe = ${JSON.stringify(classes)};
+const probe = document.getElementById('tailwind-hmr-probe');
+if (probe) probe.className = tailwindHmrProbe;
+if (import.meta.hot) {
+  import.meta.hot.accept(module => {
+    const current = document.getElementById('tailwind-hmr-probe');
+    if (current && module) current.className = module.tailwindHmrProbe;
+  });
+}
+`;
+  let session;
   let created = false;
+  let stage = 'initialize-module';
+  const diagnostics = { stages: [], sourceFile: file, moduleUrl };
   try {
-    await session.page.evaluate(() => {
+    // Register an ordinary source dependency before initial CSS compilation.
+    // An orphan file added after startup has no Vite module importer and is not
+    // a realistic test of CSS HMR for an imported application module.
+    await fs.writeFile(file, moduleSource(''), { flag: 'wx' });
+    created = true;
+    session = await openPage(browser, url, viewports[0]);
+    await session.page.evaluate(async sourceUrl => {
       window.__tailwindHmrDocument = 'preserved';
       const probe = document.createElement('div');
       probe.id = 'tailwind-hmr-probe';
       probe.style.position = 'fixed';
       probe.style.top = '100px';
       document.body.append(probe);
-    });
+      await import(sourceUrl);
+    }, moduleUrl);
     for (const [index, width] of [137, 173].entries()) {
+      stage = `${index ? 'update' : 'add'}-${width}px`;
       const classes = `w-[${width}px] h-[19px] bg-[#123456]`;
-      await fs.writeFile(file, `export const tailwindHmrProbe = ${JSON.stringify(classes)};\n`, { flag: index ? 'w' : 'wx' });
-      created = true;
-      await session.page.locator('#tailwind-hmr-probe').evaluate((element, value) => { element.className = value; }, classes);
+      await fs.writeFile(file, moduleSource(classes));
+      // The imported module's HMR callback must apply the updated class itself.
       await session.page.waitForFunction(expected => {
         const probe = document.getElementById('tailwind-hmr-probe');
         return probe && getComputedStyle(probe).width === `${expected}px`;
       }, width, { timeout: 20000 });
       assert.equal(await session.page.evaluate(() => window.__tailwindHmrDocument), 'preserved', 'CSS HMR does not reload the document');
       assert.equal(await session.page.locator('#tailwind-hmr-probe').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(18, 52, 86)');
+      diagnostics.stages.push({ stage, passed: true });
     }
     assert.deepEqual(session.errors, []);
     assert.deepEqual(session.forbiddenCalls, []);
-    console.log('Vite CSS HMR passed: newly added and updated arbitrary utilities, no document reload');
+    diagnostics.passed = true;
+    console.log('Vite CSS HMR passed: imported module adds and updates arbitrary utilities, no document reload');
+  } catch (error) {
+    diagnostics.passed = false;
+    diagnostics.failedStage = stage;
+    diagnostics.error = error.message;
+    if (session) {
+      diagnostics.document = await session.page.evaluate(() => {
+        const probe = document.getElementById('tailwind-hmr-probe');
+        return {
+          sentinel: window.__tailwindHmrDocument,
+          probe: probe ? {
+            classes: probe.className,
+            width: getComputedStyle(probe).width,
+            background: getComputedStyle(probe).backgroundColor,
+          } : null,
+        };
+      }).catch(failure => ({ error: failure.message }));
+      // These diagnostic requests run only after failure; they cannot make a
+      // stalled watcher accidentally pass by forcing another CSS transform.
+      for (const [name, pathname] of [['css', '/src/index.css'], ['module', moduleUrl]]) {
+        try {
+          const response = await session.page.request.get(new URL(pathname, url).href);
+          await fs.writeFile(path.join(output, `hmr-${name}-response.txt`), await response.text());
+        } catch (failure) { diagnostics[`${name}ReadError`] = failure.message; }
+      }
+      await session.page.screenshot({ path: path.join(output, 'hmr-failure.png') }).catch(() => {});
+    }
+    throw new Error(`${stage}: ${error.message}`);
   } finally {
+    if (session) diagnostics.browserEvents = session.browserEvents;
+    await fs.writeFile(path.join(output, 'hmr-diagnostics.json'), JSON.stringify(diagnostics, null, 2));
+    if (session) await session.context.close();
     if (created) await fs.unlink(file);
-    await session.context.close();
   }
 }
 

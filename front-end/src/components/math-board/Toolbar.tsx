@@ -121,7 +121,7 @@ export function Toolbar({
         step={1}
         value={strokeWidth}
         onChange={(event) => onStrokeWidthChange(Number(event.target.value))}
-        className="h-2 w-12 accent-white sm:w-24"
+        className="h-2 w-12 bg-white accent-white sm:w-24"
         aria-label="Stroke width"
       />
       <span
@@ -253,7 +253,7 @@ export function Toolbar({
         gap={6}
         className={cn(
           panelClass,
-          "max-w-full min-w-0 !flex-nowrap justify-start overflow-x-auto p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:min-w-max sm:justify-center sm:overflow-visible [&::-webkit-scrollbar]:hidden",
+          "max-w-full min-w-0 !flex-nowrap justify-start overflow-x-auto p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:min-w-max sm:overflow-visible [&::-webkit-scrollbar]:hidden",
         )}
       >
         {SWATCHES.map((swatch) => (
