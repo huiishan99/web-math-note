@@ -28,6 +28,8 @@ npm run test
 npm run build
 ```
 
+The Tailwind 4 frontend targets Safari 16.4+, Chrome 111+, and Firefox 128+. The packaged Electron runtime exceeds these requirements. Older browsers are not supported; see the [Tailwind upgrade guide](https://tailwindcss.com/docs/upgrade-guide#browser-requirements).
+
 Development defaults to `http://127.0.0.1:8900`; production defaults to same-origin `/api`. Set `VITE_API_URL` only for a different standalone backend.
 
 ## Backend

@@ -29,7 +29,8 @@ jobs:
       - run: python -m pip install -r back-end/requirements.txt pip-audit
       - run: python -m unittest discover -s back-end/tests
       - run: python -m compileall -q back-end app.py
-      - run: npm --prefix front-end audit --omit=dev
+      - run: npm --prefix front-end audit
+      - run: node scripts/proxy-download-regression.cjs
       - run: pip-audit
       - name: Browser regression with no AI credentials
         run: |
@@ -37,12 +38,25 @@ jobs:
           "$RUNNER_TEMP/browser/node_modules/.bin/playwright" install --with-deps chromium
           python -m uvicorn main:app --host 127.0.0.1 --port 8916 > "$RUNNER_TEMP/mathnote-server.log" 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" || true' EXIT
+          npm --prefix front-end run dev -- --host 127.0.0.1 --port 8920 > "$RUNNER_TEMP/vite.log" 2>&1 &
+          vite_pid=$!
+          trap 'kill "$server_pid" "$vite_pid" || true' EXIT
           for attempt in $(seq 1 30); do
             curl --fail --silent http://127.0.0.1:8916/api/health && break
             sleep 1
           done
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" node scripts/browser-smoke.cjs
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" DEV_URL=http://127.0.0.1:8920 VISUAL_ARTIFACT_DIR="$RUNNER_TEMP/tailwind-visual" node scripts/tailwind-regression.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: tailwind-visual-regression
+          path: |
+            ${{ runner.temp }}/tailwind-visual
+            ${{ runner.temp }}/vite.log
+            ${{ runner.temp }}/mathnote-server.log
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Desktop package regression (not a release)
         run: |
           VITE_API_URL=http://127.0.0.1:8916 npm --prefix front-end run build:desktop

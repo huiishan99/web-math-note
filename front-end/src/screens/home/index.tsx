@@ -546,7 +546,7 @@ export default function Home() {
   ]);
 
   const statusMessage = notice || calculator.error || storageError || solverReadiness.message;
-  const statusTone = calculator.error || storageError ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-neutral-950/72 text-white";
+  const statusTone = calculator.error || storageError ? "border-red-300/25 bg-red-950/75 text-red-50" : "border-white/10 bg-transparent text-white";
   const statusPosition = calculator.hasVariables
     ? "bottom-[calc(env(safe-area-inset-bottom)+16rem)] xl:bottom-4"
     : "bottom-[calc(env(safe-area-inset-bottom)+10rem)] xl:bottom-4";
@@ -606,7 +606,7 @@ export default function Home() {
           onPointerCancel={handleInkSelectionPointerUp}
           title="Drag selected ink"
         >
-          <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+          <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-transparent p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
             <Button
               type="button"
               size="icon"
@@ -710,7 +710,7 @@ export default function Home() {
       />
       {calculator.isLoading && !statusMessage && (
         <div
-          className={`fixed left-1/2 z-40 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-md border border-white/10 bg-neutral-950/72 text-white shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition}`}
+          className={`fixed left-1/2 z-40 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-md border border-white/10 bg-transparent text-white shadow-xl shadow-black/30 backdrop-blur-xl ${statusPosition}`}
           aria-live="polite"
           aria-label="Solving"
         >

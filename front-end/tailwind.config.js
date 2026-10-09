@@ -18,6 +18,12 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Preserve the existing UI palette across the Tailwind v4 color-space change.
+        neutral: {"950":"#0a0a0a"},
+        red: {"50":"#fef2f2","100":"#fee2e2","300":"#fca5a5","400":"#f87171","950":"#450a0a"},
+        emerald: {"50":"#ecfdf5","100":"#d1fae5","400":"#34d399"},
+        amber: {"100":"#fef3c7"},
+        zinc: {"300":"#d4d4d8"},
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

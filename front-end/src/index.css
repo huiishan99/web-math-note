@@ -1,6 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Keep Mantine defaults above the reset, while utility classes can override them. */
+@layer theme, base, mantine, components, utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 html,
 body,
@@ -100,5 +101,13 @@ body,
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Tailwind v3 used pointer cursors for enabled button controls. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }

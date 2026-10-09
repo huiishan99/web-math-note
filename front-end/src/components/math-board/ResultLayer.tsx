@@ -87,7 +87,7 @@ function ResultItem({
           "answer-pop",
           isInlineAnswer
             ? "pointer-events-auto absolute cursor-grab px-1 py-0 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] active:cursor-grabbing"
-            : "pointer-events-auto absolute max-w-[min(24rem,calc(100vw-2rem))] cursor-grab rounded-md border border-white/10 bg-neutral-950/72 px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-2xl active:cursor-grabbing",
+            : "pointer-events-auto absolute max-w-[min(24rem,calc(100vw-2rem))] cursor-grab rounded-md border border-white/10 bg-transparent px-3 py-2 text-white shadow-xl shadow-black/30 backdrop-blur-2xl active:cursor-grabbing",
           isSelected && "rounded-md ring-1 ring-white/60",
           isPending && "rounded-md ring-1 ring-amber-100/35",
         )}
@@ -102,7 +102,7 @@ function ResultItem({
         title="Double-click to copy"
       >
         {isPending && (
-          <div className="absolute -right-1 -top-9 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+          <div className="absolute -right-1 -top-9 flex items-center gap-1 rounded-md border border-white/10 bg-transparent p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
             <Button
               type="button"
               size="icon"
@@ -130,7 +130,7 @@ function ResultItem({
           </div>
         )}
         {isSelected && (
-          <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-neutral-950/78 p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
+          <div className="absolute -right-1 top-full mt-1 flex items-center gap-1 rounded-md border border-white/10 bg-transparent p-1 shadow-xl shadow-black/30 backdrop-blur-2xl">
             <Button
               type="button"
               size="icon"
