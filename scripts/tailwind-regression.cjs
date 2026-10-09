@@ -38,7 +38,10 @@ async function openPage(browser, url, viewport) {
   const recordEvent = event => { if (browserEvents.length < 100) browserEvents.push(event); };
   page.on('console', message => recordEvent({ type: 'console', level: message.type(), text: message.text() }));
   page.on('websocket', socket => {
-    recordEvent({ type: 'websocket', url: socket.url() });
+    const address = new URL(socket.url());
+    address.search = '';
+    address.hash = '';
+    recordEvent({ type: 'websocket', url: address.href });
     socket.on('framereceived', frame => recordEvent({ type: 'websocket-frame', payload: String(frame.payload).slice(0, 2000) }));
   });
   page.on('pageerror', error => errors.push(error.message));
