@@ -61,7 +61,7 @@ async function openPage(browser, url, viewport) {
     const probe = document.createElement('div');
     probe.id = 'tailwind-theme-probe';
     // Exercise existing semantic utilities without changing application sources.
-    probe.className = 'bg-background text-foreground border border-input rounded-md';
+    probe.className = 'bg-primary text-primary-foreground border border-input rounded-md';
     probe.style.cssText = 'position:fixed;left:-1000px;top:0;width:20px;height:20px';
     document.body.append(probe);
     return document.fonts.ready;
@@ -126,40 +126,51 @@ function near(actual, expected, message, tolerance = 0.1) {
 }
 
 function verifyLayout(state, viewport, dark) {
+  const failures = [];
+  const capture = check => {
+    try { check(); } catch (error) { failures.push(error.message); }
+  };
+  const checkAssert = {
+    equal: (...args) => capture(() => assert.equal(...args)),
+    deepEqual: (...args) => capture(() => assert.deepEqual(...args)),
+    ok: (...args) => capture(() => assert.ok(...args)),
+  };
+  const checkNear = (...args) => capture(() => near(...args));
   const mobile = viewport.width < 1280;
-  near(state.canvas.box.width, viewport.width, 'Canvas fills viewport width');
-  near(state.canvas.box.height, viewport.height, 'Canvas fills viewport height');
-  near(state.canvas.box.x, 0, 'Canvas left edge');
-  near(state.canvas.box.y, 0, 'Canvas top edge');
-  near(state.navigation.box.x, mobile ? 12 : 16, 'Navigation inset');
-  near(state.navigation.box.y, mobile ? 12 : 16, 'Navigation top inset');
-  near(state.newPage.box.width, 32, 'Page button important width');
-  near(state.newPage.box.height, 32, 'Page button important height');
-  near(state.pen.box.width, mobile ? 32 : 36, 'Responsive tool-button width');
-  near(state.pen.box.height, mobile ? 32 : 36, 'Responsive tool-button height');
-  near(state.penIcon.box.width, 16, 'Nested SVG width');
-  near(state.penIcon.box.height, 16, 'Nested SVG height');
-  near(state.whiteInk.box.width, mobile ? 36 : 32, 'Responsive ink button width');
-  near(state.whiteInk.box.height, mobile ? 36 : 32, 'Responsive ink button height');
-  near(state.inkSwatch.box.width, 20, 'Mantine ColorSwatch width');
-  assert.equal(state.pen.style.borderRadius, '6px', 'Legacy configured radius is preserved');
-  assert.equal(state.toolPanel.style.borderWidth, '1px');
-  assert.equal(state.toolPanel.style.backdropFilter, 'blur(40px)', 'Legacy backdrop-blur-2xl');
-  assert.equal(state.canvas.style.touchAction, 'none');
-  assert.equal(state.canvas.style.cursor, 'crosshair');
-  assert.deepEqual(state.canvas.style.backgroundColor, [8, 9, 11, 255]);
-  assert.deepEqual(state.toolPanel.style.borderColor, [255, 255, 255, 26]);
-  assert.equal(state.undo.style.opacity, '0.5', 'Disabled button opacity');
-  assert.equal(state.pen.style.pointerEvents, 'auto', 'Tool panel accepts input');
-  assert.deepEqual(state.themeProbe.style.backgroundColor, dark ? [10, 10, 10, 255] : [255, 255, 255, 255], 'Semantic background follows class-based dark theme');
-  assert.deepEqual(state.themeProbe.style.color, dark ? [250, 250, 250, 255] : [10, 10, 10, 255], 'Semantic foreground follows class-based dark theme');
+  checkNear(state.canvas.box.width, viewport.width, 'Canvas fills viewport width');
+  checkNear(state.canvas.box.height, viewport.height, 'Canvas fills viewport height');
+  checkNear(state.canvas.box.x, 0, 'Canvas left edge');
+  checkNear(state.canvas.box.y, 0, 'Canvas top edge');
+  checkNear(state.navigation.box.x, mobile ? 12 : 16, 'Navigation inset');
+  checkNear(state.navigation.box.y, mobile ? 12 : 16, 'Navigation top inset');
+  checkNear(state.newPage.box.width, 32, 'Page button important width');
+  checkNear(state.newPage.box.height, 32, 'Page button important height');
+  checkNear(state.pen.box.width, mobile ? 32 : 36, 'Responsive tool-button width');
+  checkNear(state.pen.box.height, mobile ? 32 : 36, 'Responsive tool-button height');
+  checkNear(state.penIcon.box.width, 16, 'Nested SVG width');
+  checkNear(state.penIcon.box.height, 16, 'Nested SVG height');
+  checkNear(state.whiteInk.box.width, mobile ? 36 : 32, 'Responsive ink button width');
+  checkNear(state.whiteInk.box.height, mobile ? 36 : 32, 'Responsive ink button height');
+  checkNear(state.inkSwatch.box.width, 20, 'Mantine ColorSwatch width');
+  checkAssert.equal(state.pen.style.borderRadius, '6px', 'Legacy configured radius is preserved');
+  checkAssert.equal(state.toolPanel.style.borderWidth, '1px');
+  checkAssert.equal(state.toolPanel.style.backdropFilter, 'blur(40px)', 'Legacy backdrop-blur-2xl');
+  checkAssert.equal(state.canvas.style.touchAction, 'none');
+  checkAssert.equal(state.canvas.style.cursor, 'crosshair');
+  checkAssert.deepEqual(state.canvas.style.backgroundColor, [8, 9, 11, 255]);
+  checkAssert.deepEqual(state.toolPanel.style.borderColor, [255, 255, 255, 26]);
+  checkAssert.equal(state.undo.style.opacity, '0.5', 'Disabled button opacity');
+  checkAssert.equal(state.pen.style.pointerEvents, 'auto', 'Tool panel accepts input');
+  checkAssert.deepEqual(state.themeProbe.style.backgroundColor, dark ? [250, 250, 250, 255] : [23, 23, 23, 255], 'Semantic primary background follows class-based dark theme');
+  checkAssert.deepEqual(state.themeProbe.style.color, dark ? [23, 23, 23, 255] : [250, 250, 250, 255], 'Semantic primary foreground follows class-based dark theme');
   if (mobile) {
-    assert.ok(state.pen.box.y > viewport.height / 2, 'Mobile tools dock at the bottom');
-    assert.ok(state.navigation.box.width <= viewport.width - 24, 'Navigation fits mobile');
+    checkAssert.ok(state.pen.box.y > viewport.height / 2, 'Mobile tools dock at the bottom');
+    checkAssert.ok(state.navigation.box.width <= viewport.width - 24, 'Navigation fits mobile');
   } else {
-    assert.ok(state.pen.box.y < 80, 'Desktop tools dock at the top');
-    near(state.toolbar.box.x, 368, 'Desktop toolbar offset');
+    checkAssert.ok(state.pen.box.y < 80, 'Desktop tools dock at the top');
+    checkNear(state.toolbar.box.x, 368, 'Desktop toolbar offset');
   }
+  return failures;
 }
 
 function compareStyles(before, after, label) {
@@ -298,7 +309,6 @@ async function verifyHmr(browser, url) {
           const after = await snapshot(current.page);
           await fs.writeFile(path.join(output, `${label}-current.json`), JSON.stringify(after, null, 2));
           const afterImage = await current.page.screenshot({ path: path.join(output, `${label}-current.png`), animations: 'disabled' });
-          verifyLayout(after, viewport, dark);
           if (baseline) {
             const before = await snapshot(baseline.page);
             await fs.writeFile(path.join(output, `${label}-baseline.json`), JSON.stringify(before, null, 2));
@@ -307,22 +317,30 @@ async function verifyHmr(browser, url) {
             const ratio = await comparePixels(current.page, beforeImage, afterImage, label);
             if (ratio > 0.001) failures.push(`${label}: more than 0.1% of screenshot pixels changed (${ratio})`);
           }
-          console.log(`${label}: geometry, responsive tools, disabled styles, canvas and Mantine swatches passed`);
+          const layoutFailures = verifyLayout(after, viewport, dark);
+          failures.push(...layoutFailures.map(failure => `${label}: ${failure}`));
+          console.log(`${label}: ${layoutFailures.length ? `${layoutFailures.length} layout assertion(s) failed` : 'geometry, responsive tools, disabled styles, canvas and Mantine swatches passed'}`);
         }
-        await verifyInteractions(current.page, viewport);
-        assert.deepEqual(current.errors, []);
-        assert.deepEqual(current.forbiddenCalls, [], 'No AI or other POST requests are allowed');
-        if (baseline) {
-          assert.deepEqual(baseline.errors, []);
-          assert.deepEqual(baseline.forbiddenCalls, []);
+        try {
+          await verifyInteractions(current.page, viewport);
+          console.log(`${viewport.name}: drawing, undo/redo, tool switching, page restore, repeated creation and cancel passed`);
+        } catch (error) {
+          failures.push(`${viewport.name} interaction: ${error.message}`);
         }
-        console.log(`${viewport.name}: drawing, undo/redo, tool switching, page restore, repeated creation and cancel passed`);
+        for (const [name, session] of [['current', current], ['baseline', baseline]]) {
+          if (!session) continue;
+          failures.push(...session.errors.map(error => `${viewport.name} ${name} page error: ${error}`));
+          failures.push(...session.forbiddenCalls.map(url => `${viewport.name} ${name} forbidden POST: ${url}`));
+        }
       } finally {
         await current.context.close();
         if (baseline) await baseline.context.close();
       }
     }
-    if (process.env.DEV_URL) await verifyHmr(browser, process.env.DEV_URL);
+    if (process.env.DEV_URL) {
+      try { await verifyHmr(browser, process.env.DEV_URL); }
+      catch (error) { failures.push(`Vite HMR: ${error.message}`); }
+    }
     assert.deepEqual(failures, [], 'Tailwind migration must preserve baseline computed styles and screenshots');
     console.log(`Tailwind regression passed; artifacts: ${output}`);
   } finally {
