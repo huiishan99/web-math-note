@@ -1,4 +1,5 @@
-fastapi==0.128.8
+fastapi==0.135.4
+starlette==1.3.1
 uvicorn==0.39.0
 pydantic==2.13.4
 google-genai==2.7.0
