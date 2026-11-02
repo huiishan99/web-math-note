@@ -4,7 +4,7 @@ import type { DrawingTool } from "@/hooks/useDrawingCanvas";
 import { cn } from "@/lib/utils";
 
 interface CanvasBoardProps {
-  canvasRef: RefObject<HTMLCanvasElement>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   tool: DrawingTool;
   onPointerDown: PointerEventHandler<HTMLCanvasElement>;
   onPointerEnter?: PointerEventHandler<HTMLCanvasElement>;
