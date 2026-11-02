@@ -1,0 +1,69 @@
+# Keep dependency updates reviewable and avoid dozens of separate security PRs.
+# Dependabot security alerts and security updates must be enabled in repository settings.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/front-end"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      security-fixes:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      nonbreaking-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Keep the root pyproject.toml and backend requirements.txt in sync.
+  - package-ecosystem: "pip"
+    directories:
+      - "/"
+      - "/back-end"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      security-fixes:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      nonbreaking-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      security-fixes:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      nonbreaking-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
