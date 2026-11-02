@@ -310,6 +310,10 @@ if (import.meta.hot) {
       assert.equal(await session.page.evaluate(() => window.__tailwindHmrDocument), 'preserved', 'CSS HMR does not reload the document');
       assert.equal(await session.page.locator('#tailwind-hmr-probe').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(18, 52, 86)');
       diagnostics.stages.push({ stage, passed: true });
+      // Allow Vite/Tailwind to finish processing the first HMR file-system
+      // event before making the next edit. Otherwise, Linux file watchers
+      // can coalesce consecutive writes and report the second only on unlink.
+      if (index === 0) await session.page.waitForTimeout(750);
     }
     assert.deepEqual(session.errors, []);
     assert.deepEqual(session.forbiddenCalls, []);
