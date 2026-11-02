@@ -7,7 +7,7 @@ const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL, import.meta.env.DEV)
 
 export function useSolverReadiness() {
   const [readiness, setReadiness] = useState<SolverReadiness>({ state: "checking", message: "Checking AI availability…", needsVerification: true });
-  const controllerRef = useRef<AbortController>();
+  const controllerRef = useRef<AbortController | undefined>(undefined);
   const refresh = useCallback(async () => {
     controllerRef.current?.abort();
     const controller = new AbortController();
