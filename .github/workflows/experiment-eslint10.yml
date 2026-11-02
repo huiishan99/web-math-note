@@ -1,0 +1,35 @@
+name: Experiment ESLint 10 compatibility
+on:
+  push:
+    branches: [experiment/eslint10-compat-20261102]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - run: npm --prefix front-end install --ignore-scripts --no-fund
+      - run: npm --prefix front-end ci --ignore-scripts --no-fund
+      - run: npm --prefix front-end ls eslint @eslint/js eslint-plugin-react-hooks
+      - run: npm --prefix front-end audit
+      - run: npm --prefix front-end run lint
+      - run: npm --prefix front-end test
+      - run: npm --prefix front-end run build
+      - name: Commit lockfile on successful validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add front-end/package-lock.json
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(deps): lock ESLint 10 alongside React 19'
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/experiment/eslint10-compat-20261102"

@@ -19,6 +19,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // ESLint 10 + react-hooks 7 enable new React Compiler diagnostics.
+      // Keep the three newly introduced checks visible as warnings until
+      // the existing hooks/components are refactored in a separate change.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
