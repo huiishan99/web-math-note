@@ -61,9 +61,9 @@ function loadTurnstile(): Promise<TurnstileApi> {
 
 export function useHumanVerification() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<string>();
+  const widgetRef = useRef<string | undefined>(undefined);
   const attemptsRef = useRef(new VerificationAttempts());
-  const timerRef = useRef<number>();
+  const timerRef = useRef<number | undefined>(undefined);
   const mountedRef = useRef(true);
   const [isVerifying, setIsVerifying] = useState(false);
 
