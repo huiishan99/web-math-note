@@ -1,0 +1,54 @@
+# Temporary workflow: apply only npm's semver-compatible fixes on PR #33.
+# Remove this workflow after the one-time fix run.
+name: One-time nonbreaking dependency autofix
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: write
+jobs:
+  patch-lockfile:
+    if: ${{ github.event.pull_request.number == 33 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chore/security-audit-dependabot-2026-11' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: front-end/package-lock.json
+      - run: npm --prefix front-end ci
+      - name: Apply safe npm audit fixes (never use --force)
+        shell: bash
+        run: |
+          set +e
+          npm --prefix front-end audit fix --ignore-scripts
+          audit_status=$?
+          set -e
+          # npm may return 1 when non-fixable advisories still remain.
+          if [ "$audit_status" -gt 1 ]; then
+            exit "$audit_status"
+          fi
+      - run: npm --prefix front-end run lint
+      - run: npm --prefix front-end test
+      - run: npm --prefix front-end run build
+      - name: Push vetted manifest and lockfile changes to this PR branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git add front-end/package.json front-end/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No compatible npm fixes were generated."
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(deps): apply npm nonbreaking security patches'
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${PR_BRANCH}"
