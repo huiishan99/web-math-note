@@ -32,7 +32,10 @@ jobs:
       - run: python -m pip install -r back-end/requirements.txt pip-audit
       - run: python -m unittest discover -s back-end/tests
       - run: python -m compileall -q back-end app.py
-      - run: npm --prefix front-end audit
+      - name: Audit frontend dependencies
+        id: npm_audit
+        continue-on-error: true
+        run: npm --prefix front-end audit
       - run: node scripts/proxy-download-regression.cjs
       - run: pip-audit
       - name: Browser regression with no AI credentials
@@ -65,3 +68,10 @@ jobs:
           VITE_API_URL=http://127.0.0.1:8916 npm --prefix front-end run build:desktop
           cd front-end
           npx --no-install electron-builder --linux --x64 --dir --publish never
+      - name: Enforce clean frontend dependency audit
+        if: always()
+        run: |
+          if [ "${{ steps.npm_audit.outcome }}" != "success" ]; then
+            echo "::error::npm audit detected unresolved vulnerabilities. Review the audit log."
+            exit 1
+          fi
