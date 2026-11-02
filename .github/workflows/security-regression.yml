@@ -53,7 +53,7 @@ jobs:
           done
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" node scripts/browser-smoke.cjs
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/browser/node_modules/playwright" DEV_URL=http://127.0.0.1:8920 VISUAL_ARTIFACT_DIR="$RUNNER_TEMP/tailwind-visual" node scripts/tailwind-regression.cjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: tailwind-visual-regression
