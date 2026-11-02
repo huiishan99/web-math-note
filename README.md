@@ -34,7 +34,7 @@ Development defaults to `http://127.0.0.1:8900`; production defaults to same-ori
 
 ## Backend
 
-Use Python 3.10+ for backend environments. This workspace has been verified with Python 3.12.13 and the current Google Gen AI SDK.
+Use Python 3.12 for backend environments (the supported version in `pyproject.toml`). Pillow 13.0.0 drops Python 3.10 support.
 
 ```bash
 cd back-end
